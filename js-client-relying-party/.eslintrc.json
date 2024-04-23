@@ -6,7 +6,15 @@
     "project": ["./tsconfig.json"]
   },
   "plugins": ["@typescript-eslint"],
-  "ignorePatterns": ["**/*.spec.ts", "**/*.test.ts", "**/*.mock.ts", "dist/**"],
+  "ignorePatterns": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.mock.ts",
+    "dist/**",
+    "jest.config.js",
+    "esbuild.mjs",
+    "rmdir.mjs"
+  ],
   "rules": {
     "@typescript-eslint/consistent-type-imports": "error"
   }
