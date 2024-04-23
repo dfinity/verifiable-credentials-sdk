@@ -50,7 +50,7 @@ jobs:
         run: npm ci
       - name: Test
         working-directory: ${{env.working-directory}}
-        run: npm run test --workspaces
+        run: npm run test
 
   may-merge:
     needs: ["build-rp-client", "lint-rp-client", "test-rp-client"]
