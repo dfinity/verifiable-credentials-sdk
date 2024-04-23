@@ -1,4 +1,4 @@
-import { requestVerifiableCredentials } from "../requestVerifiableCredentials";
+import { requestVerifiableCredentials } from "..";
 
 describe("Request Verifiable Credentials function", () => {
   it("returns 2", () => {

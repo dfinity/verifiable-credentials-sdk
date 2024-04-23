@@ -10,7 +10,7 @@ jobs:
   build-rp-client:
     runs-on: ubuntu-20.04
     env:
-      working-directory: js-client-relying-party
+      working-directory: js-library
 
     steps:
       - name: Checkout

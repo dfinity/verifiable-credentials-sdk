@@ -3,7 +3,7 @@ export type CredentialsSpec = {
   arguments: Record<string, string | number>;
 };
 
-export const requestVerifiableCredentials = () => {
+export const requestVerifiablePresentation = () => {
   console.log("Hello, world");
   return 2;
 };

@@ -1,9 +1,5 @@
 import esbuild from "esbuild";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-} from "fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 
 const peerDependencies = (packageJson) => {
@@ -25,13 +21,20 @@ const createDistFolder = () => {
 };
 
 const bundleFiles = () => {
-  const mainEntryPoint = `${join(process.cwd(), "src")}/main.ts`;
+  const entryPoints = readdirSync(join(process.cwd(), "src"))
+    .filter(
+      (file) =>
+        !file.includes("test") &&
+        !file.includes("spec") &&
+        statSync(join(process.cwd(), "src", file)).isFile(),
+    )
+    .map((file) => `src/${file}`);
 
   // esm output bundles with code splitting
   esbuild
     .build({
-      entryPoints: [mainEntryPoint],
-      outfile: "dist/index.js",
+      entryPoints,
+      outdir: "dist",
       bundle: true,
       sourcemap: true,
       minify: true,
@@ -41,9 +44,7 @@ const bundleFiles = () => {
       target: ["esnext"],
       platform: "browser",
       conditions: ["browser"],
-      external: [
-        ...Object.keys(workspacePeerDependencies),
-      ],
+      external: [...Object.keys(workspacePeerDependencies)],
     })
     .catch(() => process.exit(1));
 };
