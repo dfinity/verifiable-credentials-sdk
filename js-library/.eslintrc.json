@@ -11,7 +11,7 @@
     "**/*.test.ts",
     "**/*.mock.ts",
     "dist/**",
-    "vite.config.js",
+    "vite.config.ts",
     "esbuild.mjs",
     "rmdir.mjs"
   ],
