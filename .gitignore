@@ -1,3 +1,6 @@
 # NPM libraries
 node_modules
 dist
+
+# Editor settings
+.vscode
