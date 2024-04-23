@@ -55,5 +55,15 @@
     "blockchain",
     "crypto",
     "relying party"
-  ]
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./request-verifiable-presentation": {
+      "import": "./dist/request-verifiable-presentation.js",
+      "require": "./dist/request-verifiable-presentation.js"
+    }
+  }
 }
