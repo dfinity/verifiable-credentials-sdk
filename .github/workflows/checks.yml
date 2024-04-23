@@ -1,0 +1,60 @@
+name: CI Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-rp-client:
+    runs-on: ubuntu-20.04
+    env:
+      working-directory: js-client-relying-party
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        working-directory: ${{env.working-directory}}
+        run: npm ci
+      - name: Build
+        working-directory: ${{env.working-directory}}
+        run: npm run build
+
+  lint-rp-client:
+    runs-on: ubuntu-20.04
+    env:
+      working-directory: js-client-relying-party
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        working-directory: ${{env.working-directory}}
+        run: npm ci
+      - name: Lint
+        working-directory: ${{env.working-directory}}
+        run: npm run lint
+
+  test-rp-client:
+    runs-on: ubuntu-20.04
+    env:
+      working-directory: js-client-relying-party
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        working-directory: ${{env.working-directory}}
+        run: npm ci
+      - name: Test
+        working-directory: ${{env.working-directory}}
+        run: npm run test --workspaces
+
+  may-merge:
+    needs: ["build-rp-client", "lint-rp-client", "test-rp-client"]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Cleared for merging
+        run: echo OK
