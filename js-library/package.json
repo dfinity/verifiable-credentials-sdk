@@ -1,0 +1,71 @@
+{
+  "name": "@dfinity/verifiable-credentials",
+  "version": "0.0.1",
+  "description": "Library to interact with the identity provider to get a credential presentation.",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=v20.11.1"
+  },
+  "scripts": {
+    "lint": "eslint --max-warnings 0 .",
+    "format": "prettier --write .",
+    "rmdir": "node ./rmdir.mjs",
+    "ts-declaration": "tsc --emitDeclarationOnly --outDir dist",
+    "build": "npm run rmdir && mkdir -p dist && node esbuild.mjs && npm run ts-declaration",
+    "prepack": "npm run build",
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dfinity/verifiable-credentials-sdk.git",
+    "directory": "js-library"
+  },
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/dfinity/verifiable-credentials-sdk/issues"
+  },
+  "homepage": "https://github.com/dfinity/verifiable-credentials-sdk#readme",
+  "keywords": [
+    "internet computer",
+    "internet-computer",
+    "ic",
+    "icp",
+    "dfinity",
+    "verifiable credentials",
+    "javascript",
+    "typescript",
+    "blockchain",
+    "crypto",
+    "relying party"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./request-verifiable-presentation": {
+      "import": "./dist/request-verifiable-presentation.js",
+      "require": "./dist/request-verifiable-presentation.js",
+      "types": "./dist/request-verifiable-presentation.d.ts"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "@typescript-eslint/eslint-plugin": "^7.7.1",
+    "esbuild": "^0.20.2",
+    "eslint": "^8.57.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "prettier": "^3.2.5",
+    "prettier-plugin-organize-imports": "^3.2.4",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.0"
+  }
+}
