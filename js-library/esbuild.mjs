@@ -1,6 +1,12 @@
 import esbuild from "esbuild";
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs";
-import { join } from "path";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+} from "node:fs";
+import { join } from "node:path";
 
 const peerDependencies = (packageJson) => {
   const json = readFileSync(packageJson, "utf8");
