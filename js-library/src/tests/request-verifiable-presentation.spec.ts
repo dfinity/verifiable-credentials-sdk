@@ -6,6 +6,7 @@ describe("Request Verifiable Credentials function", () => {
     "2vtpp-r6lcd-cbfas-qbabv-wxrv5-lsrkj-c4dtb-6ets3-srlqe-xpuzf-vqe";
   const identityProvider = "https://identity.ic0.app";
   const issuerOrigin = "https://metaissuer.vc/";
+  const relyingPartyOrigin = "https://relyingparty.vc/";
   // Source: https://github.com/dfinity/internet-identity/blob/6df217532c7e3d4d465decbd9159ceab5262ba2d/src/vc-api/src/index.ts#L9
   const VcFlowReady = {
     jsonrpc: "2.0",
@@ -26,6 +27,36 @@ describe("Request Verifiable Credentials function", () => {
 
   beforeEach(() => {
     window.open = vi.fn();
+  });
+
+  it("calls onSuccess with a valid ", async () => {
+    new Promise<void>((done) => {
+      const onError = vi.fn();
+      requestVerifiablePresentation({
+        onSuccess: () => {
+          expect(onError).not.toHaveBeenCalled();
+          done();
+        },
+        onError,
+        credentialData: {
+          credentialSpec: {
+            credentialType: "MembershipCredential",
+            arguments: {
+              organization: "DFINITY",
+            },
+          },
+          credentialSubject,
+        },
+        issuerData: {
+          origin: issuerOrigin,
+        },
+        derivationOrigin: undefined,
+        identityProvider,
+      });
+      expect(window.open).toHaveBeenCalledTimes(1);
+      window.postMessage(VcFlowReady, "*");
+      window.postMessage(vcVerifiablePresentationMessage, relyingPartyOrigin);
+    });
   });
 
   it("calls onSuccess with a verifiable presentation", async () =>
