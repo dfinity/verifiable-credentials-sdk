@@ -18,7 +18,7 @@
     "ts-declaration": "tsc --emitDeclarationOnly --outDir dist",
     "build": "npm run rmdir && mkdir -p dist && node esbuild.mjs && npm run ts-declaration",
     "prepack": "npm run build",
-    "test": "vitest"
+    "test": "tsc --noEmit -p ./tsconfig.spec.json && vitest"
   },
   "repository": {
     "type": "git",
@@ -56,6 +56,7 @@
     }
   },
   "devDependencies": {
+    "@types/jest": "^29.5.12",
     "@types/node": "^20.12.7",
     "@typescript-eslint/eslint-plugin": "^7.7.1",
     "esbuild": "^0.20.2",

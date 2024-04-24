@@ -7,9 +7,6 @@
   },
   "plugins": ["@typescript-eslint"],
   "ignorePatterns": [
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "**/*.mock.ts",
     "dist/**",
     "vite.config.ts",
     "esbuild.mjs",
