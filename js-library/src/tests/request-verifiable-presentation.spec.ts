@@ -70,6 +70,7 @@ describe("Request Verifiable Credentials function", () => {
       requestVerifiablePresentation({
         onSuccess: (presentation: string) => {
           expect(presentation).toEqual(verifiablePresentation);
+          expect(onError).not.toHaveBeenCalled();
           done();
         },
         onError,
