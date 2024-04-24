@@ -8,7 +8,6 @@ describe("Request Verifiable Credentials function", () => {
   const credentialSubject =
     "2vtpp-r6lcd-cbfas-qbabv-wxrv5-lsrkj-c4dtb-6ets3-srlqe-xpuzf-vqe";
   const identityProvider = "https://identity.ic0.app";
-  const relyingPartyOrigin = "https://relyingparty.vc/";
   const issuerOrigin = "https://jqajs-xiaaa-aaaad-aab5q-cai.ic0.app";
   const derivationOrigin = "https://metaissuer.vc/";
   const issuerData = {
