@@ -13,7 +13,13 @@ export type IssuerData = {
   canisterId?: string;
 };
 
+// Needed to reset the flow id between tests.
+export const resetNextFlowId = () => {
+  nextFlowId = 0;
+};
+
 let iiWindow: Window | null = null;
+// TODO: Use UUIDs instead of incrementing integers.
 let nextFlowId = 0;
 
 export const requestVerifiablePresentation = ({
@@ -64,7 +70,8 @@ export const requestVerifiablePresentation = ({
         onSuccess(verifiablePresentation);
       }
     } catch (err) {
-      onError(`Error getting the verifiable credential: ${err}`);
+      const message = err instanceof Error ? err.message : JSON.stringify(err);
+      onError(`Error getting the verifiable credential: ${message}`);
     } finally {
       iiWindow?.close();
       window.removeEventListener("message", handleFlowFinished);
