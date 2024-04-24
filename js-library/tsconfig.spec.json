@@ -11,9 +11,7 @@
     "strict": false,
     "allowArbitraryExtensions": true,
     "baseUrl": ".",
-    "types": [
-      "vitest/globals",
-      "node"
-    ]
-  }
+    "types": ["vitest/globals", "node"]
+  },
+  "exclude": []
 }

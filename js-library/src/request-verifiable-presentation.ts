@@ -1,7 +1,7 @@
 export type CredentialData = {
   credentialSpec: CredentialSpec;
   credentialSubject: string;
-}
+};
 
 export type CredentialSpec = {
   credentialType: string;

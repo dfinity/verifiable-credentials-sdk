@@ -2,7 +2,8 @@ import { vi } from "vitest";
 import { requestVerifiablePresentation } from "../request-verifiable-presentation";
 
 describe("Request Verifiable Credentials function", () => {
-  const credentialSubject = "2vtpp-r6lcd-cbfas-qbabv-wxrv5-lsrkj-c4dtb-6ets3-srlqe-xpuzf-vqe";
+  const credentialSubject =
+    "2vtpp-r6lcd-cbfas-qbabv-wxrv5-lsrkj-c4dtb-6ets3-srlqe-xpuzf-vqe";
   const identityProvider = "https://identity.ic0.app";
   const issuerOrigin = "https://metaissuer.vc/";
   const relyingPartyOrigin = "https://relyingparty.vc/";
@@ -19,8 +20,8 @@ describe("Request Verifiable Credentials function", () => {
 
   beforeEach(() => {
     window.open = vi.fn();
-  })
-  
+  });
+
   it("calls onSuccess with a valid ", async () => {
     new Promise<void>((done) => {
       const onError = vi.fn();
@@ -47,10 +48,7 @@ describe("Request Verifiable Credentials function", () => {
       });
       expect(window.open).toHaveBeenCalledTimes(1);
       window.postMessage(VcFlowReady, "*");
-      window.postMessage(
-        vcVerifiablePresentationMessage,
-        relyingPartyOrigin,
-      );
-    })
+      window.postMessage(vcVerifiablePresentationMessage, relyingPartyOrigin);
+    });
   });
 });
