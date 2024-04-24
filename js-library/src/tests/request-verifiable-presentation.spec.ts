@@ -29,11 +29,12 @@ describe("Request Verifiable Credentials function", () => {
     window.open = vi.fn();
   });
 
-  it("calls onSuccess with a valid ", async () => {
+  it("calls onSuccess with a verifiable presentation", async () =>
     new Promise<void>((done) => {
       const onError = vi.fn();
       requestVerifiablePresentation({
-        onSuccess: () => {
+        onSuccess: (presentation: string) => {
+          expect(presentation).toEqual(verifiablePresentation);
           expect(onError).not.toHaveBeenCalled();
           done();
         },
@@ -56,8 +57,7 @@ describe("Request Verifiable Credentials function", () => {
       expect(window.open).toHaveBeenCalledTimes(1);
       window.postMessage(VcFlowReady, "*");
       window.postMessage(vcVerifiablePresentationMessage, relyingPartyOrigin);
-    });
-  });
+    }));
 
   it("calls onSuccess with a verifiable presentation", async () =>
     new Promise<void>((done) => {
