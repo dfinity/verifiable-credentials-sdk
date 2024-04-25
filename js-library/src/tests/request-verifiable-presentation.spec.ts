@@ -72,7 +72,7 @@ describe("Request Verifiable Credentials function", () => {
     );
   };
 
-  it.only("opens new window and calls onSuccess with a verifiable presentation", async () =>
+  it("opens new window and calls onSuccess with a verifiable presentation", async () =>
     new Promise<void>((done) => {
       requestVerifiablePresentation({
         onSuccess: (presentation: string) => {
