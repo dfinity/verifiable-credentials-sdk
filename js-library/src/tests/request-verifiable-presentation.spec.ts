@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import {
   requestVerifiablePresentation,
   resetNextFlowId,
+  type CredentialRequestData,
   type VerifiablePresentationSuccess,
 } from "../request-verifiable-presentation";
 import {
@@ -18,12 +19,12 @@ describe("Request Verifiable Credentials function", () => {
   const issuerData = {
     origin: issuerOrigin,
   };
+
   // Source: https://github.com/dfinity/internet-identity/blob/6df217532c7e3d4d465decbd9159ceab5262ba2d/src/vc-api/src/index.ts#L9
   const VcFlowReady = {
     jsonrpc: "2.0",
     method: "vc-flow-ready",
   };
-  const verifiablePresentation = "12345";
   const expectedFlowId = "1";
   const vcVerifiablePresentationMessageSuccess = {
     // id should match the received id.
@@ -36,15 +37,11 @@ describe("Request Verifiable Credentials function", () => {
       verifiablePresentation: credentialPresentationMock,
     },
   };
-  const credentialPresentationSuccess = {
-    verifiablePresentation: credentialPresentationMock,
-    decodedJwt: credentialsPresentationDecodedMock,
-  };
   const vcVerifiablePresentationMessageError = {
     id: "1",
     error: "Error getting the verifiable credential",
   };
-  const credentialData = {
+  const credentialData: CredentialRequestData = {
     credentialSpec: {
       credentialType: "MembershipCredential",
       arguments: {
@@ -53,7 +50,16 @@ describe("Request Verifiable Credentials function", () => {
     },
     credentialSubject,
   };
+
+  const credentialPresentationSuccess: VerifiablePresentationSuccess = {
+    verifiablePresentation: credentialPresentationMock,
+    decodedCredentials: credentialsPresentationDecodedMock,
+  };
+
   let sourcePostMessageSpy;
+  const unreachableFn = () => {
+    expect.unreachable("this function should not be called");
+  };
 
   beforeEach(() => {
     window.open = vi.fn();
@@ -80,10 +86,7 @@ describe("Request Verifiable Credentials function", () => {
           expect(presentation).toEqual(credentialPresentationSuccess);
           done();
         },
-        onError: () => {
-          expect(true).toBe(false);
-          done();
-        },
+        onError: unreachableFn,
         credentialData,
         issuerData,
         derivationOrigin: undefined,
@@ -96,14 +99,12 @@ describe("Request Verifiable Credentials function", () => {
 
   it("calls onSuccess with a verifiable presentation", async () =>
     new Promise<void>((done) => {
-      const onError = vi.fn();
       requestVerifiablePresentation({
         onSuccess: (presentation: VerifiablePresentationSuccess) => {
           expect(presentation).toEqual(credentialPresentationSuccess);
-          expect(onError).not.toHaveBeenCalled();
           done();
         },
-        onError,
+        onError: unreachableFn,
         credentialData: {
           credentialSpec: {
             credentialType: "MembershipCredential",
@@ -146,7 +147,7 @@ describe("Request Verifiable Credentials function", () => {
           );
           done();
         },
-        onError: vi.fn(),
+        onError: unreachableFn,
         credentialData,
         issuerData,
         derivationOrigin,
@@ -165,7 +166,7 @@ describe("Request Verifiable Credentials function", () => {
           expect(onError).not.toHaveBeenCalled();
           done();
         },
-        onError,
+        onError: unreachableFn,
         credentialData,
         issuerData,
         derivationOrigin: undefined,
@@ -178,14 +179,12 @@ describe("Request Verifiable Credentials function", () => {
 
   it("waits until the expected id is received", () =>
     new Promise<void>((done) => {
-      const onError = vi.fn();
       requestVerifiablePresentation({
         onSuccess: (presentation: VerifiablePresentationSuccess) => {
           expect(presentation).toEqual(credentialPresentationSuccess);
-          expect(onError).not.toHaveBeenCalled();
           done();
         },
-        onError,
+        onError: unreachableFn,
         credentialData,
         issuerData,
         derivationOrigin: undefined,
@@ -201,14 +200,12 @@ describe("Request Verifiable Credentials function", () => {
 
   it("ignores messages before starting the flow", () =>
     new Promise<void>((done) => {
-      const onError = vi.fn();
       requestVerifiablePresentation({
         onSuccess: (presentation: VerifiablePresentationSuccess) => {
           expect(presentation).toEqual(credentialPresentationSuccess);
-          expect(onError).not.toHaveBeenCalled();
           done();
         },
-        onError,
+        onError: unreachableFn,
         credentialData,
         issuerData,
         derivationOrigin: undefined,
@@ -222,11 +219,9 @@ describe("Request Verifiable Credentials function", () => {
 
   it("calls onError when the credential fails", () =>
     new Promise<void>((done) => {
-      const onSuccess = vi.fn();
       requestVerifiablePresentation({
-        onSuccess,
+        onSuccess: unreachableFn,
         onError: (err: unknown) => {
-          expect(onSuccess).not.toHaveBeenCalled();
           expect(err).toEqual(
             `Error getting the verifiable credential: ${vcVerifiablePresentationMessageError.error}`,
           );
@@ -244,11 +239,9 @@ describe("Request Verifiable Credentials function", () => {
   it("calls onError when there is no verifiable presentation", () =>
     new Promise<void>((done) => {
       const noCredential = { id: "1", jsonrpc: "2.0" };
-      const onSuccess = vi.fn();
       requestVerifiablePresentation({
-        onSuccess,
+        onSuccess: unreachableFn,
         onError: (err: unknown) => {
-          expect(onSuccess).not.toHaveBeenCalled();
           expect(err).toEqual(
             `Error getting the verifiable credential: Key 'verifiablePresentation' not found in the message data: ${JSON.stringify(noCredential)}`,
           );
@@ -261,6 +254,40 @@ describe("Request Verifiable Credentials function", () => {
       });
       mockMessageFromIdentityProvider(VcFlowReady);
       mockMessageFromIdentityProvider(noCredential);
+    }));
+
+  it("calls onError if decoding credential fails", async () =>
+    new Promise<void>((done) => {
+      requestVerifiablePresentation({
+        onSuccess: unreachableFn,
+        onError: (err: string) => {
+          expect(err).toBe(
+            "Error getting the verifiable credential: Decoding credentials failed: JWTInvalid: Invalid JWT",
+          );
+          done();
+        },
+        credentialData: {
+          credentialSpec: {
+            credentialType: "MembershipCredential",
+            arguments: {
+              organization: "DFINITY",
+            },
+          },
+          credentialSubject,
+        },
+        issuerData: {
+          origin: issuerOrigin,
+        },
+        derivationOrigin: undefined,
+        identityProvider,
+      });
+      mockMessageFromIdentityProvider(VcFlowReady);
+      mockMessageFromIdentityProvider({
+        ...vcVerifiablePresentationMessageSuccess,
+        result: {
+          verifiablePresentation: "invalid",
+        },
+      });
     }));
 
   // TODO: Add functionality after refactor.

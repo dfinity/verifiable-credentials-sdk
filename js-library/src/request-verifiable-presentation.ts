@@ -1,62 +1,30 @@
 import { decodeJwt, type JWTPayload } from "jose";
 
-export type CredentialData = {
-  credentialSpec: CredentialSpec;
+/**
+ * Helper types.
+ */
+type CredentialsArguments = Record<string, string | number>;
+type CredentialType = string;
+type CredentialParameters = Record<CredentialType, CredentialsArguments>;
+type CredentialContext = string | string[];
+type EncryptedCredential = string;
+type EncodedPresentation = string;
+
+/**
+ * Types used to request the verifiable presentation.
+ */
+export type CredentialRequestSpec = {
+  credentialType: CredentialType;
+  arguments: CredentialsArguments;
+};
+export type CredentialRequestData = {
+  credentialSpec: CredentialRequestSpec;
   credentialSubject: string;
 };
-
-export type CredentialSpec = {
-  credentialType: string;
-  arguments: Record<string, string | number>;
-};
-
 export type IssuerData = {
   origin: string;
   canisterId?: string;
 };
-
-export type CredentialParameters = Record<
-  string,
-  Record<string, string | number>
->;
-
-export type VerifiableCredential = JWTPayload & {
-  vc: {
-    // TODO: Confirm. II says `string` but the spec says `string[]`.
-    "@context": string | string[];
-    credentialSubject: CredentialParameters;
-    type: string[];
-  };
-};
-
-// Type got from decoding the JWT
-// Source: https://www.w3.org/TR/vc-data-model/#example-jwt-payload-of-a-jwt-based-verifiable-presentation-non-normative
-type VerifiableCredentialJwtClaims = {
-  // TODO: Confirm. II says `string` but the spec says `string[]`.
-  "@context": string | string[];
-  // TODO: Confirm. II says `string` but the spec says `string[]` or `[string]`.
-  type: "VerifiablePresentation";
-  verifiableCredential: [string, string];
-};
-
-type VerifiableCredentialClaimsDecoded = VerifiableCredentialJwtClaims & {
-  identityAliasIdCredential: VerifiableCredential;
-  subjectVerifiableCredential: VerifiableCredential;
-};
-
-export type VerifiablePresentationDecoded = JWTPayload & {
-  vp: VerifiableCredentialClaimsDecoded;
-};
-
-type VerifiablePresentationJwtData = JWTPayload & {
-  vp: VerifiableCredentialJwtClaims;
-};
-
-export type VerifiablePresentationSuccess = {
-  verifiablePresentation: string;
-  decodedJwt: VerifiablePresentationDecoded;
-};
-
 const VC_REQUEST_METHOD = "request_credential";
 const JSON_RPC_VERSION = "2.0";
 type CredentialsRequest = {
@@ -65,11 +33,51 @@ type CredentialsRequest = {
   method: typeof VC_REQUEST_METHOD;
   params: {
     issuer: IssuerData;
-    credentialSpec: CredentialSpec;
+    credentialSpec: CredentialRequestSpec;
     credentialSubject: string;
     derivationOrigin: string | undefined;
   };
 };
+
+/**
+ * Types after decoding the JWT. Used internally.
+ */
+// Source: https://www.w3.org/TR/vc-data-model/#example-jwt-payload-of-a-jwt-based-verifiable-presentation-non-normative
+type InternalVerifiableCredentialJwtClaims = {
+  "@context": CredentialContext;
+  // Source: https://github.com/dfinity/internet-identity/blob/e01fbd5ae2fd6fe1a2646c9b5d49f7e52b8810eb/src/frontend/src/flows/verifiableCredentials/index.ts#L452
+  type: "VerifiablePresentation";
+  verifiableCredential: [EncryptedCredential, EncryptedCredential];
+};
+type InternalVerifiablePresentationJwt = JWTPayload & {
+  vp: InternalVerifiableCredentialJwtClaims;
+};
+type VerifiableCredential = JWTPayload & {
+  vc: {
+    "@context": CredentialContext;
+    credentialSubject: CredentialParameters;
+    type: string[];
+  };
+};
+
+/**
+ * Types used to return the decoded JWT.
+ */
+type VerifiableCredentialClaims = InternalVerifiableCredentialJwtClaims & {
+  identityAliasIdCredential: VerifiableCredential;
+  subjectVerifiableCredential: VerifiableCredential;
+};
+type VerifiablePresentation = JWTPayload & {
+  vp: VerifiableCredentialClaims;
+};
+export type VerifiablePresentationSuccess = {
+  verifiablePresentation: EncodedPresentation;
+  decodedCredentials: VerifiablePresentation;
+};
+
+/**
+ * Helper functions
+ */
 
 // Needed to reset the flow id between tests.
 // TODO: Remove this when using UUIDs.
@@ -95,7 +103,7 @@ const createCredentialRequest = ({
 }: {
   issuerData: IssuerData;
   derivationOrigin: string | undefined;
-  credentialData: CredentialData;
+  credentialData: CredentialRequestData;
 }): CredentialsRequest => {
   const nextFlowId = createFlowId();
   return {
@@ -111,10 +119,10 @@ const createCredentialRequest = ({
   };
 };
 
-export const decodeCredentials = (
+const decodeCredentials = (
   verifiablePresentation: string,
-): VerifiablePresentationDecoded => {
-  const decodedJwt = decodeJwt<VerifiablePresentationJwtData>(
+): VerifiablePresentation => {
+  const decodedJwt = decodeJwt<InternalVerifiablePresentationJwt>(
     verifiablePresentation,
   );
   if (
@@ -154,10 +162,10 @@ const getCredential = (evnt: MessageEvent): VerifiablePresentationSuccess => {
     const decodedCredentials = decodeCredentials(verifiablePresentation);
     return {
       verifiablePresentation,
-      decodedJwt: decodedCredentials,
+      decodedCredentials: decodedCredentials,
     };
   } catch (err) {
-    throw new Error(`Error decoding the verifiable presentation: ${err}`);
+    throw new Error(`Decoding credentials failed: ${err}`);
   }
 };
 
@@ -174,14 +182,13 @@ export const requestVerifiablePresentation = ({
     verifiablePresentation: VerifiablePresentationSuccess,
   ) => void | Promise<void>;
   onError: (err?: string) => void | Promise<void>;
-  credentialData: CredentialData;
+  credentialData: CredentialRequestData;
   issuerData: IssuerData;
   windowOpenerFeatures?: string;
   derivationOrigin: string | undefined;
   identityProvider: string;
 }) => {
   const handleFlow = (evnt: MessageEvent) => {
-    // TODO: Check if the message is from the identity provider
     // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L504
     if (evnt.data?.method === "vc-flow-ready") {
       const request = createCredentialRequest({
@@ -207,7 +214,6 @@ export const requestVerifiablePresentation = ({
     }
   };
   // TODO: Check if user closed the window and return an error.
-  // WARNING: We want to remove the id from `currentFlows` when the window is closed.
   // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L489
   window.addEventListener("message", handleFlow);
   const url = new URL(identityProvider);
