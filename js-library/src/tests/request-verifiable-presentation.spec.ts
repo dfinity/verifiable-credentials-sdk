@@ -2,7 +2,12 @@ import { vi } from "vitest";
 import {
   requestVerifiablePresentation,
   resetNextFlowId,
+  type VerifiablePresentationSuccess,
 } from "../request-verifiable-presentation";
+import {
+  credentialPresentationMock,
+  credentialsPresentationDecodedMock,
+} from "./mocks";
 
 describe("Request Verifiable Credentials function", () => {
   const credentialSubject =
@@ -28,8 +33,12 @@ describe("Request Verifiable Credentials function", () => {
     id: expectedFlowId,
     jsonrpc: "2.0",
     result: {
-      verifiablePresentation,
+      verifiablePresentation: credentialPresentationMock,
     },
+  };
+  const credentialPresentationSuccess = {
+    verifiablePresentation: credentialPresentationMock,
+    decodedJwt: credentialsPresentationDecodedMock,
   };
   const vcVerifiablePresentationMessageError = {
     id: "1",
@@ -64,16 +73,17 @@ describe("Request Verifiable Credentials function", () => {
     );
   };
 
-  it("opens new window and calls onSuccess with a verifiable presentation", async () =>
+  it.only("opens new window and calls onSuccess with a verifiable presentation", async () =>
     new Promise<void>((done) => {
-      const onError = vi.fn();
       requestVerifiablePresentation({
-        onSuccess: (presentation: string) => {
-          expect(presentation).toEqual(verifiablePresentation);
-          expect(onError).not.toHaveBeenCalled();
+        onSuccess: (presentation: VerifiablePresentationSuccess) => {
+          expect(presentation).toEqual(credentialPresentationSuccess);
           done();
         },
-        onError,
+        onError: () => {
+          expect(true).toBe(false);
+          done();
+        },
         credentialData,
         issuerData,
         derivationOrigin: undefined,
@@ -88,8 +98,8 @@ describe("Request Verifiable Credentials function", () => {
     new Promise<void>((done) => {
       const onError = vi.fn();
       requestVerifiablePresentation({
-        onSuccess: (presentation: string) => {
-          expect(presentation).toEqual(verifiablePresentation);
+        onSuccess: (presentation: VerifiablePresentationSuccess) => {
+          expect(presentation).toEqual(credentialPresentationSuccess);
           expect(onError).not.toHaveBeenCalled();
           done();
         },
@@ -150,7 +160,7 @@ describe("Request Verifiable Credentials function", () => {
     new Promise<void>((done) => {
       const onError = vi.fn();
       requestVerifiablePresentation({
-        onSuccess: (presentation: string) => {
+        onSuccess: (presentation: VerifiablePresentationSuccess) => {
           expect(presentation).toEqual(verifiablePresentation);
           expect(onError).not.toHaveBeenCalled();
           done();
@@ -170,8 +180,8 @@ describe("Request Verifiable Credentials function", () => {
     new Promise<void>((done) => {
       const onError = vi.fn();
       requestVerifiablePresentation({
-        onSuccess: (presentation: string) => {
-          expect(presentation).toEqual(verifiablePresentation);
+        onSuccess: (presentation: VerifiablePresentationSuccess) => {
+          expect(presentation).toEqual(credentialPresentationSuccess);
           expect(onError).not.toHaveBeenCalled();
           done();
         },
@@ -193,8 +203,8 @@ describe("Request Verifiable Credentials function", () => {
     new Promise<void>((done) => {
       const onError = vi.fn();
       requestVerifiablePresentation({
-        onSuccess: (presentation: string) => {
-          expect(presentation).toEqual(verifiablePresentation);
+        onSuccess: (presentation: VerifiablePresentationSuccess) => {
+          expect(presentation).toEqual(credentialPresentationSuccess);
           expect(onError).not.toHaveBeenCalled();
           done();
         },

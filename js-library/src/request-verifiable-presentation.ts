@@ -1,3 +1,5 @@
+import { decodeJwt, type JWTPayload } from "jose";
+
 export type CredentialData = {
   credentialSpec: CredentialSpec;
   credentialSubject: string;
@@ -11,6 +13,48 @@ export type CredentialSpec = {
 export type IssuerData = {
   origin: string;
   canisterId?: string;
+};
+
+export type CredentialParameters = Record<
+  string,
+  Record<string, string | number>
+>;
+
+export type VerifiableCredential = JWTPayload & {
+  vc: {
+    // TODO: Confirm. II says `string` but the spec says `string[]`.
+    "@context": string | string[];
+    credentialSubject: CredentialParameters;
+    type: string[];
+  };
+};
+
+// Type got from decoding the JWT
+// Source: https://www.w3.org/TR/vc-data-model/#example-jwt-payload-of-a-jwt-based-verifiable-presentation-non-normative
+type VerifiableCredentialJwtClaims = {
+  // TODO: Confirm. II says `string` but the spec says `string[]`.
+  "@context": string | string[];
+  // TODO: Confirm. II says `string` but the spec says `string[]` or `[string]`.
+  type: "VerifiablePresentation";
+  verifiableCredential: [string, string];
+};
+
+type VerifiableCredentialClaimsDecoded = VerifiableCredentialJwtClaims & {
+  identityAliasIdCredential: VerifiableCredential;
+  subjectVerifiableCredential: VerifiableCredential;
+};
+
+export type VerifiablePresentationDecoded = JWTPayload & {
+  vp: VerifiableCredentialClaimsDecoded;
+};
+
+type VerifiablePresentationJwtData = JWTPayload & {
+  vp: VerifiableCredentialJwtClaims;
+};
+
+export type VerifiablePresentationSuccess = {
+  verifiablePresentation: string;
+  decodedJwt: VerifiablePresentationDecoded;
 };
 
 const VC_REQUEST_METHOD = "request_credential";
@@ -67,9 +111,37 @@ const createCredentialRequest = ({
   };
 };
 
+export const decodeCredentials = (
+  verifiablePresentation: string,
+): VerifiablePresentationDecoded => {
+  const decodedJwt = decodeJwt<VerifiablePresentationJwtData>(
+    verifiablePresentation,
+  );
+  if (
+    decodedJwt.vp.verifiableCredential === undefined ||
+    decodedJwt.vp.verifiableCredential.length !== 2
+  ) {
+    throw new Error(`Verifiable credentials malformed ${decodeJwt}`);
+  }
+  const [alias, credential] = decodedJwt.vp.verifiableCredential.map(
+    (encodedCredential: string) =>
+      decodeJwt<VerifiableCredential>(encodedCredential),
+  );
+
+  return {
+    ...decodedJwt,
+    vp: {
+      ...decodedJwt.vp,
+      identityAliasIdCredential: alias,
+      subjectVerifiableCredential: credential,
+    },
+  };
+};
+
 // TODO: Decode the verifiable presentation and return a typed object.
-const getCredential = (evnt: MessageEvent): string => {
+const getCredential = (evnt: MessageEvent): VerifiablePresentationSuccess => {
   if (evnt.data?.error !== undefined) {
+    // TODO: Return this error in onSuccess, not onError.
     throw new Error(evnt.data.error);
   }
   const verifiablePresentation = evnt.data?.result?.verifiablePresentation;
@@ -78,7 +150,15 @@ const getCredential = (evnt: MessageEvent): string => {
       `Key 'verifiablePresentation' not found in the message data: ${JSON.stringify(evnt.data)}`,
     );
   }
-  return verifiablePresentation;
+  try {
+    const decodedCredentials = decodeCredentials(verifiablePresentation);
+    return {
+      verifiablePresentation,
+      decodedJwt: decodedCredentials,
+    };
+  } catch (err) {
+    throw new Error(`Error decoding the verifiable presentation: ${err}`);
+  }
 };
 
 export const requestVerifiablePresentation = ({
@@ -90,7 +170,9 @@ export const requestVerifiablePresentation = ({
   derivationOrigin,
   identityProvider,
 }: {
-  onSuccess: (verifiablePresentation: string) => void | Promise<void>;
+  onSuccess: (
+    verifiablePresentation: VerifiablePresentationSuccess,
+  ) => void | Promise<void>;
   onError: (err?: string) => void | Promise<void>;
   credentialData: CredentialData;
   issuerData: IssuerData;
