@@ -32,7 +32,7 @@ type CredentialsRequest = {
 export const resetNextFlowId = () => {
   nextFlowIdCounter = 0;
 };
-
+// TODO: Support multiple flows at the same time.
 let iiWindow: Window | null = null;
 // TODO: Use UUIDs instead of incrementing integers.
 let nextFlowIdCounter = 0;
