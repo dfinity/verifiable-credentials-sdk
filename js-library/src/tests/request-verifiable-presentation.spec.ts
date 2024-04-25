@@ -238,7 +238,9 @@ describe("Request Verifiable Credentials function", () => {
         onSuccess,
         onError: (err: unknown) => {
           expect(onSuccess).not.toHaveBeenCalled();
-          expect(err).toEqual("Couldn't get the verifiable credential");
+          expect(err).toEqual(
+            "Error getting the verifiable credential: Verifiable presentation not found.",
+          );
           done();
         },
         credentialData,

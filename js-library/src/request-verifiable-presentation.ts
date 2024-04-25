@@ -13,19 +13,77 @@ export type IssuerData = {
   canisterId?: string;
 };
 
+const VC_REQUEST_METHOD = "request_credential";
+const JSON_RPC_VERSION = "2.0";
+type CredentialsRequest = {
+  id: FlowId;
+  jsonrpc: typeof JSON_RPC_VERSION;
+  method: typeof VC_REQUEST_METHOD;
+  params: {
+    issuer: IssuerData;
+    credentialSpec: CredentialSpec;
+    credentialSubject: string;
+    derivationOrigin: string | undefined;
+  };
+};
+
 // Needed to reset the flow id between tests.
+// TODO: Remove this when using UUIDs.
 export const resetNextFlowId = () => {
-  nextFlowId = 0;
+  nextFlowIdCounter = 0;
 };
 
 let iiWindow: Window | null = null;
 // TODO: Use UUIDs instead of incrementing integers.
-let nextFlowId = 0;
+let nextFlowIdCounter = 0;
+const createFlowId = (): FlowId => {
+  nextFlowIdCounter += 1;
+  return String(nextFlowIdCounter);
+};
+
+type FlowId = string;
+const currentFlows = new Set<FlowId>();
+
+const createCredentialRequest = ({
+  issuerData,
+  derivationOrigin,
+  credentialData: { credentialSpec, credentialSubject },
+}: {
+  issuerData: IssuerData;
+  derivationOrigin: string | undefined;
+  credentialData: CredentialData;
+}): CredentialsRequest => {
+  const nextFlowId = createFlowId();
+  return {
+    id: nextFlowId,
+    jsonrpc: JSON_RPC_VERSION,
+    method: VC_REQUEST_METHOD,
+    params: {
+      issuer: issuerData,
+      credentialSpec,
+      credentialSubject,
+      derivationOrigin: derivationOrigin,
+    },
+  };
+};
+
+// TODO: Decode the verifiable presentation and return a typed object.
+const getCredential = (evnt: MessageEvent): string => {
+  if (evnt.data?.error !== undefined) {
+    throw new Error(evnt.data.error);
+  }
+  const verifiablePresentation = evnt.data?.result?.verifiablePresentation;
+  if (verifiablePresentation === undefined) {
+    // This should never happen
+    throw new Error("Verifiable presentation not found.");
+  }
+  return verifiablePresentation;
+};
 
 export const requestVerifiablePresentation = ({
   onSuccess,
   onError,
-  credentialData: { credentialSpec, credentialSubject },
+  credentialData,
   issuerData,
   windowOpenerFeatures,
   derivationOrigin,
@@ -39,59 +97,37 @@ export const requestVerifiablePresentation = ({
   derivationOrigin: string | undefined;
   identityProvider: string;
 }) => {
-  nextFlowId += 1;
-  const startFlow = (evnt: MessageEvent) => {
-    const req = {
-      id: String(nextFlowId),
-      jsonrpc: "2.0",
-      method: "request_credential",
-      params: {
-        issuer: issuerData,
-        credentialSpec,
-        credentialSubject,
-        derivationOrigin: derivationOrigin,
-      },
-    };
-    window.addEventListener("message", handleFlowFinished);
-    window.removeEventListener("message", handleFlowReady);
-    evnt.source?.postMessage(req, { targetOrigin: evnt.origin });
-  };
-  const finishFlow = async (evnt: MessageEvent) => {
-    try {
-      if (evnt.data?.error !== undefined) {
-        throw new Error(evnt.data.error);
-      }
-      // Make the presentation presentable
-      const verifiablePresentation = evnt.data?.result?.verifiablePresentation;
-      if (verifiablePresentation === undefined) {
-        // This should never happen
-        onError("Couldn't get the verifiable credential");
-      } else {
-        onSuccess(verifiablePresentation);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : JSON.stringify(err);
-      onError(`Error getting the verifiable credential: ${message}`);
-    } finally {
-      iiWindow?.close();
-      window.removeEventListener("message", handleFlowFinished);
-    }
-  };
-  const handleFlowFinished = (evnt: MessageEvent) => {
+  const handleFlow = (evnt: MessageEvent) => {
+    // TODO: Check if the message is from the identity provider
+    // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L504
     if (evnt.data?.method === "vc-flow-ready") {
-      startFlow(evnt);
-    } else if (evnt.data?.id === String(nextFlowId)) {
-      finishFlow(evnt);
+      const request = createCredentialRequest({
+        derivationOrigin,
+        issuerData,
+        credentialData,
+      });
+      currentFlows.add(request.id);
+      evnt.source?.postMessage(request, { targetOrigin: evnt.origin });
+    } else if (currentFlows.has(evnt.data?.id)) {
+      try {
+        const credential = getCredential(evnt);
+        onSuccess(credential);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : JSON.stringify(err);
+        onError(`Error getting the verifiable credential: ${message}`);
+      } finally {
+        currentFlows.delete(evnt.data.id);
+        iiWindow?.close();
+        window.removeEventListener("message", handleFlow);
+      }
     }
   };
-  const handleFlowReady = (evnt: MessageEvent) => {
-    if (evnt.data?.method !== "vc-flow-ready") {
-      return;
-    }
-    startFlow(evnt);
-  };
-  window.addEventListener("message", handleFlowReady);
+  // TODO: Check if user closed the window and return an error.
+  // WARNING: We want to remove the id from `currentFlows` when the window is closed.
+  // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L489
+  window.addEventListener("message", handleFlow);
   const url = new URL(identityProvider);
   url.pathname = "vc-flow/";
-  iiWindow = window.open(url, "_blank", windowOpenerFeatures);
+  iiWindow = window.open(url, "idpWindow", windowOpenerFeatures);
 };
