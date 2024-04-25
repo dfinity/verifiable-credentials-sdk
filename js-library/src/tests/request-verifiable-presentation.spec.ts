@@ -64,7 +64,7 @@ describe("Request Verifiable Credentials function", () => {
     );
   };
 
-  it("opens new windown and calls onSuccess with a verifiable presentation", async () =>
+  it("opens new window and calls onSuccess with a verifiable presentation", async () =>
     new Promise<void>((done) => {
       const onError = vi.fn();
       requestVerifiablePresentation({
