@@ -249,6 +249,40 @@ describe("Request Verifiable Credentials function", () => {
       mockMessageFromIdentityProvider(noCredential);
     }));
 
+  it("calls onError if decoding credential fails", async () =>
+    new Promise<void>((done) => {
+      requestVerifiablePresentation({
+        onSuccess: unreachableFn,
+        onError: (err: string) => {
+          expect(err).toBe(
+            "Error getting the verifiable credential: Decoding credentials failed: JWTInvalid: Invalid JWT",
+          );
+          done();
+        },
+        credentialData: {
+          credentialSpec: {
+            credentialType: "MembershipCredential",
+            arguments: {
+              organization: "DFINITY",
+            },
+          },
+          credentialSubject,
+        },
+        issuerData: {
+          origin: issuerOrigin,
+        },
+        derivationOrigin: undefined,
+        identityProvider,
+      });
+      mockMessageFromIdentityProvider(VcFlowReady);
+      mockMessageFromIdentityProvider({
+        ...vcVerifiablePresentationMessageSuccess,
+        result: {
+          verifiablePresentation: "invalid",
+        },
+      });
+    }));
+
   // TODO: Add functionality after refactor.
   it.skip("ignores messages from other origins than identity provider", () =>
     new Promise<void>((done) => done()));
