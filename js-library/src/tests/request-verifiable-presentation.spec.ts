@@ -73,7 +73,7 @@ describe("Request Verifiable Credentials function", () => {
     );
   };
 
-  it.only("opens new window and calls onSuccess with a verifiable presentation", async () =>
+  it("opens new window and calls onSuccess with a verifiable presentation", async () =>
     new Promise<void>((done) => {
       requestVerifiablePresentation({
         onSuccess: (presentation: VerifiablePresentationSuccess) => {
@@ -161,7 +161,7 @@ describe("Request Verifiable Credentials function", () => {
       const onError = vi.fn();
       requestVerifiablePresentation({
         onSuccess: (presentation: VerifiablePresentationSuccess) => {
-          expect(presentation).toEqual(verifiablePresentation);
+          expect(presentation).toEqual(credentialPresentationSuccess);
           expect(onError).not.toHaveBeenCalled();
           done();
         },
