@@ -15,6 +15,7 @@ describe("Request Verifiable Credentials function", () => {
   const issuerData = {
     origin: issuerOrigin,
   };
+
   // Source: https://github.com/dfinity/internet-identity/blob/6df217532c7e3d4d465decbd9159ceab5262ba2d/src/vc-api/src/index.ts#L9
   const VcFlowReady = {
     jsonrpc: "2.0",
@@ -239,6 +240,40 @@ describe("Request Verifiable Credentials function", () => {
       `Error getting the verifiable credential: Key 'verifiablePresentation' not found in the message data: ${JSON.stringify(noCredential)}`,
     );
   });
+
+  it("calls onError if decoding credential fails", async () =>
+    new Promise<void>((done) => {
+      requestVerifiablePresentation({
+        onSuccess: unreachableFn,
+        onError: (err: string) => {
+          expect(err).toBe(
+            "Error getting the verifiable credential: Decoding credentials failed: JWTInvalid: Invalid JWT",
+          );
+          done();
+        },
+        credentialData: {
+          credentialSpec: {
+            credentialType: "MembershipCredential",
+            arguments: {
+              organization: "DFINITY",
+            },
+          },
+          credentialSubject,
+        },
+        issuerData: {
+          origin: issuerOrigin,
+        },
+        derivationOrigin: undefined,
+        identityProvider,
+      });
+      mockMessageFromIdentityProvider(VcFlowReady);
+      mockMessageFromIdentityProvider({
+        ...vcVerifiablePresentationMessageSuccess,
+        result: {
+          verifiablePresentation: "invalid",
+        },
+      });
+    }));
 
   // TODO: Add functionality after refactor.
   it.skip("ignores messages from other origins than identity provider", () =>
