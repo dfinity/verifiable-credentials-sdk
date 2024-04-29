@@ -241,6 +241,52 @@ describe("Request Verifiable Credentials function", () => {
     );
   });
 
+  it("supports multiple concurrent flows", async () => {
+    const onSuccess1 = vi.fn();
+    const closeWindow1 = vi.fn();
+    const onSuccess2 = vi.fn();
+    const closeWindow2 = vi.fn();
+    window.open = vi
+      .fn()
+      .mockReturnValueOnce({ close: closeWindow1 })
+      .mockReturnValueOnce({ close: closeWindow2 });
+    requestVerifiablePresentation({
+      onSuccess: onSuccess1,
+      onError: unreachableFn,
+      credentialData,
+      issuerData,
+      derivationOrigin: undefined,
+      identityProvider,
+    });
+    const {
+      request: { id: id1 },
+    } = await startVcFlow();
+    expect(onSuccess1).not.toHaveBeenCalled();
+    requestVerifiablePresentation({
+      onSuccess: onSuccess2,
+      onError: unreachableFn,
+      credentialData,
+      issuerData,
+      derivationOrigin: undefined,
+      identityProvider,
+    });
+    const {
+      request: { id: id2 },
+    } = await startVcFlow();
+    mockMessageFromIdentityProvider(
+      vcVerifiablePresentationMessageSuccess(id2),
+    );
+    expect(onSuccess2).toHaveBeenCalledTimes(1);
+    expect(closeWindow2).toHaveBeenCalledTimes(1);
+    expect(onSuccess1).not.toHaveBeenCalled();
+    expect(closeWindow1).not.toHaveBeenCalled();
+    mockMessageFromIdentityProvider(
+      vcVerifiablePresentationMessageSuccess(id1),
+    );
+    expect(onSuccess1).toHaveBeenCalledTimes(1);
+    expect(closeWindow1).toHaveBeenCalledTimes(1);
+  });
+
   // TODO: Add functionality after refactor.
   it.skip("ignores messages from other origins than identity provider", () =>
     new Promise<void>((done) => done()));

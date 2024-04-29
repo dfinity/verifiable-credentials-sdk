@@ -38,7 +38,7 @@ export type CredentialsRequest = {
  * Helper functions
  */
 // TODO: Support multiple flows at the same time.
-let iiWindow: Window | null = null;
+const iiWindows: Map<FlowId, Window | null> = new Map();
 const createFlowId = (): FlowId => nanoid();
 
 type FlowId = string;
@@ -48,12 +48,13 @@ const createCredentialRequest = ({
   issuerData,
   derivationOrigin,
   credentialData: { credentialSpec, credentialSubject },
+  nextFlowId,
 }: {
   issuerData: IssuerData;
   derivationOrigin: string | undefined;
   credentialData: CredentialRequestData;
+  nextFlowId: FlowId;
 }): CredentialsRequest => {
-  const nextFlowId = createFlowId();
   return {
     id: nextFlowId,
     jsonrpc: JSON_RPC_VERSION,
@@ -98,17 +99,25 @@ export const requestVerifiablePresentation = ({
   derivationOrigin: string | undefined;
   identityProvider: string;
 }) => {
-  const handleFlow = (evnt: MessageEvent) => {
+  const nextFlowId = createFlowId();
+  const handleFlowFactory = (nextFlowId: FlowId) => (evnt: MessageEvent) => {
     // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L504
-    if (evnt.data?.method === "vc-flow-ready") {
+    if (
+      evnt.data?.method === "vc-flow-ready" &&
+      !currentFlows.has(nextFlowId)
+    ) {
       const request = createCredentialRequest({
         derivationOrigin,
         issuerData,
         credentialData,
+        nextFlowId,
       });
       currentFlows.add(request.id);
       evnt.source?.postMessage(request, { targetOrigin: evnt.origin });
-    } else if (currentFlows.has(evnt.data?.id)) {
+    } else if (
+      currentFlows.has(evnt.data?.id) &&
+      evnt.data?.id === nextFlowId
+    ) {
       try {
         const credential = getCredential(evnt);
         onSuccess(credential);
@@ -118,15 +127,19 @@ export const requestVerifiablePresentation = ({
         onError(`Error getting the verifiable credential: ${message}`);
       } finally {
         currentFlows.delete(evnt.data.id);
-        iiWindow?.close();
-        window.removeEventListener("message", handleFlow);
+        iiWindows.get(nextFlowId)?.close();
+        window.removeEventListener("message", handleCurrentFlow);
       }
     }
   };
+  const handleCurrentFlow = handleFlowFactory(nextFlowId);
   // TODO: Check if user closed the window and return an error.
   // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L489
-  window.addEventListener("message", handleFlow);
+  window.addEventListener("message", handleCurrentFlow);
   const url = new URL(identityProvider);
   url.pathname = "vc-flow/";
-  iiWindow = window.open(url, "idpWindow", windowOpenerFeatures);
+  const iiWindow = window.open(url, "idpWindow", windowOpenerFeatures);
+  if (iiWindow !== null) {
+    iiWindows.set(nextFlowId, iiWindow);
+  }
 };
