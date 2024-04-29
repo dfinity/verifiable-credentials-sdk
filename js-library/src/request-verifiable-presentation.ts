@@ -74,8 +74,9 @@ const getCredential = (evnt: MessageEvent): string => {
   }
   const verifiablePresentation = evnt.data?.result?.verifiablePresentation;
   if (verifiablePresentation === undefined) {
-    // This should never happen
-    throw new Error("Verifiable presentation not found.");
+    throw new Error(
+      `Key 'verifiablePresentation' not found in the message data: ${JSON.stringify(evnt.data)}`,
+    );
   }
   return verifiablePresentation;
 };
