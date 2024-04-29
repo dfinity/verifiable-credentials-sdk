@@ -233,13 +233,14 @@ describe("Request Verifiable Credentials function", () => {
 
   it("calls onError when there is no verifiable presentation", () =>
     new Promise<void>((done) => {
+      const noCredential = { id: "1", jsonrpc: "2.0" };
       const onSuccess = vi.fn();
       requestVerifiablePresentation({
         onSuccess,
         onError: (err: unknown) => {
           expect(onSuccess).not.toHaveBeenCalled();
           expect(err).toEqual(
-            "Error getting the verifiable credential: Verifiable presentation not found.",
+            `Error getting the verifiable credential: Key 'verifiablePresentation' not found in the message data: ${JSON.stringify(noCredential)}`,
           );
           done();
         },
@@ -249,7 +250,7 @@ describe("Request Verifiable Credentials function", () => {
         identityProvider,
       });
       mockMessageFromIdentityProvider(VcFlowReady);
-      mockMessageFromIdentityProvider({ id: "1", jsonrpc: "2.0" });
+      mockMessageFromIdentityProvider(noCredential);
     }));
 
   // TODO: Add functionality after refactor.
