@@ -1,15 +1,8 @@
-import { decodeJwt, type JWTPayload } from "jose";
-
 /**
  * Helper types.
  */
 type CredentialsArguments = Record<string, string | number>;
 type CredentialType = string;
-type CredentialParameters = Record<CredentialType, CredentialsArguments>;
-type CredentialContext = string | string[];
-type EncryptedCredential = string;
-type EncodedPresentation = string;
-
 /**
  * Types used to request the verifiable presentation.
  */
@@ -37,42 +30,6 @@ type CredentialsRequest = {
     credentialSubject: string;
     derivationOrigin: string | undefined;
   };
-};
-
-/**
- * Types after decoding the JWT. Used internally.
- */
-// Source: https://www.w3.org/TR/vc-data-model/#example-jwt-payload-of-a-jwt-based-verifiable-presentation-non-normative
-type InternalVerifiableCredentialJwtClaims = {
-  "@context": CredentialContext;
-  // Source: https://github.com/dfinity/internet-identity/blob/e01fbd5ae2fd6fe1a2646c9b5d49f7e52b8810eb/src/frontend/src/flows/verifiableCredentials/index.ts#L452
-  type: "VerifiablePresentation";
-  verifiableCredential: [EncryptedCredential, EncryptedCredential];
-};
-type InternalVerifiablePresentationJwt = JWTPayload & {
-  vp: InternalVerifiableCredentialJwtClaims;
-};
-type VerifiableCredential = JWTPayload & {
-  vc: {
-    "@context": CredentialContext;
-    credentialSubject: CredentialParameters;
-    type: string[];
-  };
-};
-
-/**
- * Types used to return the decoded JWT.
- */
-type VerifiableCredentialClaims = InternalVerifiableCredentialJwtClaims & {
-  identityAliasIdCredential: VerifiableCredential;
-  subjectVerifiableCredential: VerifiableCredential;
-};
-type VerifiablePresentation = JWTPayload & {
-  vp: VerifiableCredentialClaims;
-};
-export type VerifiablePresentationSuccess = {
-  verifiablePresentation: EncodedPresentation;
-  decodedCredentials: VerifiablePresentation;
 };
 
 /**
@@ -119,35 +76,7 @@ const createCredentialRequest = ({
   };
 };
 
-const decodeCredentials = (
-  verifiablePresentation: string,
-): VerifiablePresentation => {
-  const decodedJwt = decodeJwt<InternalVerifiablePresentationJwt>(
-    verifiablePresentation,
-  );
-  if (
-    decodedJwt.vp.verifiableCredential === undefined ||
-    decodedJwt.vp.verifiableCredential.length !== 2
-  ) {
-    throw new Error(`Verifiable credentials malformed ${decodeJwt}`);
-  }
-  const [alias, credential] = decodedJwt.vp.verifiableCredential.map(
-    (encodedCredential: string) =>
-      decodeJwt<VerifiableCredential>(encodedCredential),
-  );
-
-  return {
-    ...decodedJwt,
-    vp: {
-      ...decodedJwt.vp,
-      identityAliasIdCredential: alias,
-      subjectVerifiableCredential: credential,
-    },
-  };
-};
-
-// TODO: Decode the verifiable presentation and return a typed object.
-const getCredential = (evnt: MessageEvent): VerifiablePresentationSuccess => {
+const getCredential = (evnt: MessageEvent): string => {
   if (evnt.data?.error !== undefined) {
     // TODO: Return this error in onSuccess, not onError.
     throw new Error(evnt.data.error);
@@ -158,15 +87,7 @@ const getCredential = (evnt: MessageEvent): VerifiablePresentationSuccess => {
       `Key 'verifiablePresentation' not found in the message data: ${JSON.stringify(evnt.data)}`,
     );
   }
-  try {
-    const decodedCredentials = decodeCredentials(verifiablePresentation);
-    return {
-      verifiablePresentation,
-      decodedCredentials: decodedCredentials,
-    };
-  } catch (err) {
-    throw new Error(`Decoding credentials failed: ${err}`);
-  }
+  return verifiablePresentation;
 };
 
 export const requestVerifiablePresentation = ({
@@ -178,9 +99,7 @@ export const requestVerifiablePresentation = ({
   derivationOrigin,
   identityProvider,
 }: {
-  onSuccess: (
-    verifiablePresentation: VerifiablePresentationSuccess,
-  ) => void | Promise<void>;
+  onSuccess: (verifiablePresentation: string) => void | Promise<void>;
   onError: (err?: string) => void | Promise<void>;
   credentialData: CredentialRequestData;
   issuerData: IssuerData;

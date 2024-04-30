@@ -3,12 +3,8 @@ import {
   requestVerifiablePresentation,
   resetNextFlowId,
   type CredentialRequestData,
-  type VerifiablePresentationSuccess,
 } from "../request-verifiable-presentation";
-import {
-  credentialPresentationMock,
-  credentialsPresentationDecodedMock,
-} from "./mocks";
+import { credentialPresentationMock } from "./mocks";
 
 describe("Request Verifiable Credentials function", () => {
   const credentialSubject =
@@ -51,10 +47,7 @@ describe("Request Verifiable Credentials function", () => {
     credentialSubject,
   };
 
-  const credentialPresentationSuccess: VerifiablePresentationSuccess = {
-    verifiablePresentation: credentialPresentationMock,
-    decodedCredentials: credentialsPresentationDecodedMock,
-  };
+  const credentialPresentationSuccess = credentialPresentationMock;
 
   let sourcePostMessageSpy;
   const unreachableFn = () => {
@@ -82,7 +75,7 @@ describe("Request Verifiable Credentials function", () => {
   it("opens new window and calls onSuccess with a verifiable presentation", async () =>
     new Promise<void>((done) => {
       requestVerifiablePresentation({
-        onSuccess: (presentation: VerifiablePresentationSuccess) => {
+        onSuccess: (presentation: string) => {
           expect(presentation).toEqual(credentialPresentationSuccess);
           done();
         },
@@ -100,7 +93,7 @@ describe("Request Verifiable Credentials function", () => {
   it("calls onSuccess with a verifiable presentation", async () =>
     new Promise<void>((done) => {
       requestVerifiablePresentation({
-        onSuccess: (presentation: VerifiablePresentationSuccess) => {
+        onSuccess: (presentation: string) => {
           expect(presentation).toEqual(credentialPresentationSuccess);
           done();
         },
@@ -161,7 +154,7 @@ describe("Request Verifiable Credentials function", () => {
     new Promise<void>((done) => {
       const onError = vi.fn();
       requestVerifiablePresentation({
-        onSuccess: (presentation: VerifiablePresentationSuccess) => {
+        onSuccess: (presentation: string) => {
           expect(presentation).toEqual(credentialPresentationSuccess);
           expect(onError).not.toHaveBeenCalled();
           done();
@@ -180,7 +173,7 @@ describe("Request Verifiable Credentials function", () => {
   it("waits until the expected id is received", () =>
     new Promise<void>((done) => {
       requestVerifiablePresentation({
-        onSuccess: (presentation: VerifiablePresentationSuccess) => {
+        onSuccess: (presentation: string) => {
           expect(presentation).toEqual(credentialPresentationSuccess);
           done();
         },
@@ -201,7 +194,7 @@ describe("Request Verifiable Credentials function", () => {
   it("ignores messages before starting the flow", () =>
     new Promise<void>((done) => {
       requestVerifiablePresentation({
-        onSuccess: (presentation: VerifiablePresentationSuccess) => {
+        onSuccess: (presentation: string) => {
           expect(presentation).toEqual(credentialPresentationSuccess);
           done();
         },
@@ -254,40 +247,6 @@ describe("Request Verifiable Credentials function", () => {
       });
       mockMessageFromIdentityProvider(VcFlowReady);
       mockMessageFromIdentityProvider(noCredential);
-    }));
-
-  it("calls onError if decoding credential fails", async () =>
-    new Promise<void>((done) => {
-      requestVerifiablePresentation({
-        onSuccess: unreachableFn,
-        onError: (err: string) => {
-          expect(err).toBe(
-            "Error getting the verifiable credential: Decoding credentials failed: JWTInvalid: Invalid JWT",
-          );
-          done();
-        },
-        credentialData: {
-          credentialSpec: {
-            credentialType: "MembershipCredential",
-            arguments: {
-              organization: "DFINITY",
-            },
-          },
-          credentialSubject,
-        },
-        issuerData: {
-          origin: issuerOrigin,
-        },
-        derivationOrigin: undefined,
-        identityProvider,
-      });
-      mockMessageFromIdentityProvider(VcFlowReady);
-      mockMessageFromIdentityProvider({
-        ...vcVerifiablePresentationMessageSuccess,
-        result: {
-          verifiablePresentation: "invalid",
-        },
-      });
     }));
 
   // TODO: Add functionality after refactor.

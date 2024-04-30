@@ -69,7 +69,5 @@
     "typescript": "^5.4.5",
     "vitest": "^1.5.0"
   },
-  "dependencies": {
-    "jose": "^5.2.4"
-  }
+  "dependencies": {}
 }
