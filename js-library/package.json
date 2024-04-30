@@ -70,7 +70,6 @@
     "vitest": "^1.5.0"
   },
   "dependencies": {
-    "@types/uuid": "^9.0.8",
-    "uuid": "^9.0.1"
+    "nanoid": "^5.0.7"
   }
 }

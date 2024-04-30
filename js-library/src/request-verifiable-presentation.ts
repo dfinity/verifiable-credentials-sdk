@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+import { nanoid } from "nanoid";
 
 /**
  * Helper types.
@@ -40,7 +40,7 @@ export type CredentialsRequest = {
 // TODO: Support multiple flows at the same time.
 let iiWindow: Window | null = null;
 const createFlowId = (): FlowId => {
-  return uuidv4();
+  return nanoid();
 };
 
 type FlowId = string;
