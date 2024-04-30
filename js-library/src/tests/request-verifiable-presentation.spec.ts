@@ -15,7 +15,6 @@ describe("Request Verifiable Credentials function", () => {
   const issuerData = {
     origin: issuerOrigin,
   };
-
   // Source: https://github.com/dfinity/internet-identity/blob/6df217532c7e3d4d465decbd9159ceab5262ba2d/src/vc-api/src/index.ts#L9
   const VcFlowReady = {
     jsonrpc: "2.0",
