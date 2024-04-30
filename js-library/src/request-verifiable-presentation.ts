@@ -1,3 +1,5 @@
+import { nanoid } from "nanoid";
+
 /**
  * Helper types.
  */
@@ -20,7 +22,7 @@ export type IssuerData = {
 };
 const VC_REQUEST_METHOD = "request_credential";
 const JSON_RPC_VERSION = "2.0";
-type CredentialsRequest = {
+export type CredentialsRequest = {
   id: FlowId;
   jsonrpc: typeof JSON_RPC_VERSION;
   method: typeof VC_REQUEST_METHOD;
@@ -35,20 +37,9 @@ type CredentialsRequest = {
 /**
  * Helper functions
  */
-
-// Needed to reset the flow id between tests.
-// TODO: Remove this when using UUIDs.
-export const resetNextFlowId = () => {
-  nextFlowIdCounter = 0;
-};
 // TODO: Support multiple flows at the same time.
 let iiWindow: Window | null = null;
-// TODO: Use UUIDs instead of incrementing integers.
-let nextFlowIdCounter = 0;
-const createFlowId = (): FlowId => {
-  nextFlowIdCounter += 1;
-  return String(nextFlowIdCounter);
-};
+const createFlowId = (): FlowId => nanoid();
 
 type FlowId = string;
 const currentFlows = new Set<FlowId>();
