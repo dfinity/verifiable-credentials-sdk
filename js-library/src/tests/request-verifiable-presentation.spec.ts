@@ -41,7 +41,6 @@ describe("Request Verifiable Credentials function", () => {
     credentialSubject,
   };
 
-  const credentialPresentationSuccess = credentialPresentationMock;
   const unreachableFn = () => {
     expect.unreachable("this function should not be called");
   };
