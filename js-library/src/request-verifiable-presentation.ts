@@ -39,9 +39,7 @@ export type CredentialsRequest = {
  */
 // TODO: Support multiple flows at the same time.
 let iiWindow: Window | null = null;
-const createFlowId = (): FlowId => {
-  return nanoid();
-};
+const createFlowId = (): FlowId => nanoid();
 
 type FlowId = string;
 const currentFlows = new Set<FlowId>();
