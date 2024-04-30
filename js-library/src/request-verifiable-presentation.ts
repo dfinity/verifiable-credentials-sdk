@@ -1,18 +1,23 @@
-export type CredentialData = {
-  credentialSpec: CredentialSpec;
+/**
+ * Helper types.
+ */
+type CredentialsArguments = Record<string, string | number>;
+type CredentialType = string;
+/**
+ * Types used to request the verifiable presentation.
+ */
+export type CredentialRequestSpec = {
+  credentialType: CredentialType;
+  arguments: CredentialsArguments;
+};
+export type CredentialRequestData = {
+  credentialSpec: CredentialRequestSpec;
   credentialSubject: string;
 };
-
-export type CredentialSpec = {
-  credentialType: string;
-  arguments: Record<string, string | number>;
-};
-
 export type IssuerData = {
   origin: string;
   canisterId?: string;
 };
-
 const VC_REQUEST_METHOD = "request_credential";
 const JSON_RPC_VERSION = "2.0";
 type CredentialsRequest = {
@@ -21,11 +26,15 @@ type CredentialsRequest = {
   method: typeof VC_REQUEST_METHOD;
   params: {
     issuer: IssuerData;
-    credentialSpec: CredentialSpec;
+    credentialSpec: CredentialRequestSpec;
     credentialSubject: string;
     derivationOrigin: string | undefined;
   };
 };
+
+/**
+ * Helper functions
+ */
 
 // Needed to reset the flow id between tests.
 // TODO: Remove this when using UUIDs.
@@ -51,7 +60,7 @@ const createCredentialRequest = ({
 }: {
   issuerData: IssuerData;
   derivationOrigin: string | undefined;
-  credentialData: CredentialData;
+  credentialData: CredentialRequestData;
 }): CredentialsRequest => {
   const nextFlowId = createFlowId();
   return {
@@ -67,9 +76,9 @@ const createCredentialRequest = ({
   };
 };
 
-// TODO: Decode the verifiable presentation and return a typed object.
 const getCredential = (evnt: MessageEvent): string => {
   if (evnt.data?.error !== undefined) {
+    // TODO: Return this error in onSuccess, not onError.
     throw new Error(evnt.data.error);
   }
   const verifiablePresentation = evnt.data?.result?.verifiablePresentation;
@@ -92,14 +101,13 @@ export const requestVerifiablePresentation = ({
 }: {
   onSuccess: (verifiablePresentation: string) => void | Promise<void>;
   onError: (err?: string) => void | Promise<void>;
-  credentialData: CredentialData;
+  credentialData: CredentialRequestData;
   issuerData: IssuerData;
   windowOpenerFeatures?: string;
   derivationOrigin: string | undefined;
   identityProvider: string;
 }) => {
   const handleFlow = (evnt: MessageEvent) => {
-    // TODO: Check if the message is from the identity provider
     // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L504
     if (evnt.data?.method === "vc-flow-ready") {
       const request = createCredentialRequest({
@@ -125,7 +133,6 @@ export const requestVerifiablePresentation = ({
     }
   };
   // TODO: Check if user closed the window and return an error.
-  // WARNING: We want to remove the id from `currentFlows` when the window is closed.
   // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L489
   window.addEventListener("message", handleFlow);
   const url = new URL(identityProvider);
