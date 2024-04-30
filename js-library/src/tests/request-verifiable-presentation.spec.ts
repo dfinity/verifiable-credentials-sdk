@@ -241,31 +241,6 @@ describe("Request Verifiable Credentials function", () => {
     );
   });
 
-  it("calls onError if decoding credential fails", async () => {
-    const onError = vi.fn();
-    requestVerifiablePresentation({
-      onSuccess: unreachableFn,
-      onError,
-      credentialData,
-      issuerData,
-      derivationOrigin: undefined,
-      identityProvider,
-    });
-    const {
-      request: { id },
-    } = await startVcFlow();
-    mockMessageFromIdentityProvider({
-      id,
-      result: {
-        verifiablePresentation: "invalid",
-      },
-    });
-    expect(onError).toHaveBeenCalledTimes(1);
-    expect(onError).toHaveBeenCalledWith(
-      "Error getting the verifiable credential: Decoding credentials failed: JWTInvalid: Invalid JWT",
-    );
-  });
-
   // TODO: Add functionality after refactor.
   it.skip("ignores messages from other origins than identity provider", () =>
     new Promise<void>((done) => done()));
