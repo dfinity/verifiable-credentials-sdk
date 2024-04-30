@@ -128,6 +128,7 @@ export const requestVerifiablePresentation = ({
       } finally {
         currentFlows.delete(evnt.data.id);
         iiWindows.get(nextFlowId)?.close();
+        iiWindows.delete(nextFlowId);
         window.removeEventListener("message", handleCurrentFlow);
       }
     }
