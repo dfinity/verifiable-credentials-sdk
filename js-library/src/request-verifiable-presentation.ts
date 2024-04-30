@@ -99,24 +99,23 @@ export const requestVerifiablePresentation = ({
   derivationOrigin: string | undefined;
   identityProvider: string;
 }) => {
-  const nextFlowId = createFlowId();
-  const handleFlowFactory = (nextFlowId: FlowId) => (evnt: MessageEvent) => {
+  const handleFlowFactory = (currentFlowId: FlowId) => (evnt: MessageEvent) => {
     // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L504
     if (
       evnt.data?.method === "vc-flow-ready" &&
-      !currentFlows.has(nextFlowId)
+      !currentFlows.has(currentFlowId)
     ) {
       const request = createCredentialRequest({
         derivationOrigin,
         issuerData,
         credentialData,
-        nextFlowId,
+        nextFlowId: currentFlowId,
       });
       currentFlows.add(request.id);
       evnt.source?.postMessage(request, { targetOrigin: evnt.origin });
     } else if (
       currentFlows.has(evnt.data?.id) &&
-      evnt.data?.id === nextFlowId
+      evnt.data?.id === currentFlowId
     ) {
       try {
         const credential = getCredential(evnt);
@@ -127,12 +126,13 @@ export const requestVerifiablePresentation = ({
         onError(`Error getting the verifiable credential: ${message}`);
       } finally {
         currentFlows.delete(evnt.data.id);
-        iiWindows.get(nextFlowId)?.close();
-        iiWindows.delete(nextFlowId);
+        iiWindows.get(currentFlowId)?.close();
+        iiWindows.delete(currentFlowId);
         window.removeEventListener("message", handleCurrentFlow);
       }
     }
   };
+  const nextFlowId = createFlowId();
   const handleCurrentFlow = handleFlowFactory(nextFlowId);
   // TODO: Check if user closed the window and return an error.
   // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L489
