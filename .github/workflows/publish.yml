@@ -1,0 +1,36 @@
+name: Publish Release
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  publish:
+    runs-on: ubuntu-20.04
+    env:
+      working-directory: js-library
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
+      - name: Install Dependencies
+        working-directory: ${{env.working-directory}}
+        run: npm ci
+      - name: Build
+        working-directory: ${{env.working-directory}}
+        run: npm run build
+      - name: Test
+        working-directory: ${{env.working-directory}}
+        run: npm test
+      - name: Set up npm
+        working-directory: ${{env.working-directory}}
+        run: printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' registry=https://registry.npmjs.org/ always-auth=true >> .npmrc
+      - name: Publish
+        working-directory: ${{env.working-directory}}
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
