@@ -29,6 +29,7 @@ describe("Request Verifiable Credentials function", () => {
   });
   const vcVerifiablePresentationMessageError = (id: string) => ({
     id,
+    jsonrpc: "2.0",
     error: "Error getting the verifiable credential",
   });
   const credentialData: CredentialRequestData = {
@@ -47,6 +48,7 @@ describe("Request Verifiable Credentials function", () => {
 
   beforeEach(() => {
     window.open = vi.fn();
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
   });
 
   const startVcFlow = (): Promise<{
@@ -152,6 +154,7 @@ describe("Request Verifiable Credentials function", () => {
       request: { id },
     } = await startVcFlow();
     mockMessageFromIdentityProvider(VcFlowReady);
+    expect(console.warn).toHaveBeenCalledTimes(1);
     mockMessageFromIdentityProvider(vcVerifiablePresentationMessageSuccess(id));
     expect(onSuccess).toHaveBeenCalledTimes(1);
   });
@@ -172,6 +175,7 @@ describe("Request Verifiable Credentials function", () => {
     mockMessageFromIdentityProvider(
       vcVerifiablePresentationMessageSuccess("wrong-id"),
     );
+    expect(console.warn).toHaveBeenCalledTimes(1);
     expect(onSuccess).not.toHaveBeenCalled();
     mockMessageFromIdentityProvider(vcVerifiablePresentationMessageSuccess(id));
     expect(onSuccess).toHaveBeenCalledTimes(1);
@@ -286,9 +290,46 @@ describe("Request Verifiable Credentials function", () => {
     expect(closeWindow1).toHaveBeenCalledTimes(1);
   });
 
-  // TODO: Add functionality after refactor.
-  it.skip("ignores messages from other origins than identity provider", () =>
-    new Promise<void>((done) => done()));
+  it("ignores messages from other origins than identity provider", async () => {
+    const onSuccess = vi.fn();
+    requestVerifiablePresentation({
+      onSuccess,
+      onError: unreachableFn,
+      credentialData,
+      issuerData,
+      derivationOrigin: undefined,
+      identityProvider,
+    });
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        source: {
+          postMessage: vi.fn(),
+        } as unknown as Window,
+        origin: "not-identity-provider",
+        data: VcFlowReady,
+      }),
+    );
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    const {
+      request: { id },
+    } = await startVcFlow();
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        source: {
+          postMessage: vi.fn(),
+        } as unknown as Window,
+        origin: "not-identity-provider",
+        data: vcVerifiablePresentationMessageSuccess(id),
+      }),
+    );
+    expect(console.warn).toHaveBeenCalledTimes(2);
+    expect(onSuccess).not.toHaveBeenCalled();
+    mockMessageFromIdentityProvider(vcVerifiablePresentationMessageSuccess(id));
+
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onSuccess).toBeCalledWith(credentialPresentationMock);
+  });
 
   // TODO: Add functionality after refactor.
   it.skip("calls onError with timeout error if flow doesn't start in five seconds", () =>
