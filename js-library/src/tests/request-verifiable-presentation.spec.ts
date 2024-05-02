@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 import {
+  ERROR_USER_INTERRUPT,
   requestVerifiablePresentation,
   type CredentialRequestData,
   type CredentialsRequest,
@@ -49,6 +50,7 @@ describe("Request Verifiable Credentials function", () => {
   beforeEach(() => {
     window.open = vi.fn();
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.useFakeTimers();
   });
 
   const startVcFlow = (): Promise<{
@@ -105,7 +107,7 @@ describe("Request Verifiable Credentials function", () => {
     mockMessageFromIdentityProvider(vcVerifiablePresentationMessageSuccess(id));
 
     expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(onSuccess).toBeCalledWith(credentialPresentationMock);
+    expect(onSuccess).toBeCalledWith({ Ok: credentialPresentationMock });
     expect(window.open).toHaveBeenCalledTimes(1);
   });
 
@@ -203,11 +205,11 @@ describe("Request Verifiable Credentials function", () => {
     expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 
-  it("calls onError when the credential fails", async () => {
-    const onError = vi.fn();
+  it("calls onSuccess with Error when the credential fails", async () => {
+    const onSuccess = vi.fn();
     requestVerifiablePresentation({
-      onSuccess: unreachableFn,
-      onError,
+      onSuccess,
+      onError: unreachableFn,
       credentialData,
       issuerData,
       derivationOrigin: undefined,
@@ -217,10 +219,10 @@ describe("Request Verifiable Credentials function", () => {
       request: { id },
     } = await startVcFlow();
     mockMessageFromIdentityProvider(vcVerifiablePresentationMessageError(id));
-    expect(onError).toHaveBeenCalledTimes(1);
-    expect(onError).toHaveBeenCalledWith(
-      `Error getting the verifiable credential: ${vcVerifiablePresentationMessageError("id").error}`,
-    );
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onSuccess).toHaveBeenCalledWith({
+      Err: vcVerifiablePresentationMessageError("id").error,
+    });
   });
 
   it("calls onError when there is no verifiable presentation", async () => {
@@ -328,14 +330,39 @@ describe("Request Verifiable Credentials function", () => {
     mockMessageFromIdentityProvider(vcVerifiablePresentationMessageSuccess(id));
 
     expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(onSuccess).toBeCalledWith(credentialPresentationMock);
+    expect(onSuccess).toBeCalledWith({ Ok: credentialPresentationMock });
   });
 
-  // TODO: Add functionality after refactor.
-  it.skip("calls onError with timeout error if flow doesn't start in five seconds", () =>
-    new Promise<void>((done) => done()));
+  it("calls onError if user closes identity provider window", async () => {
+    const onError = vi.fn();
+    const DURATION_BEFORE_USER_CLOSES_WINDOW = 1000;
+    window.open = vi.fn().mockImplementation(() => {
+      const iiWindow = {
+        closed: false,
+      };
+      // User closes the window after 1 second
+      setTimeout(() => {
+        iiWindow.closed = true;
+      }, DURATION_BEFORE_USER_CLOSES_WINDOW);
 
-  // TODO: Add functionality after refactor.
-  it.skip("calls onError if user closes identity provider window", () =>
-    new Promise<void>((done) => done()));
+      return iiWindow;
+    });
+    requestVerifiablePresentation({
+      onSuccess: unreachableFn,
+      onError,
+      credentialData,
+      issuerData,
+      derivationOrigin: undefined,
+      identityProvider,
+    });
+
+    await startVcFlow();
+
+    vi.advanceTimersByTime(DURATION_BEFORE_USER_CLOSES_WINDOW / 2);
+    expect(onError).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(DURATION_BEFORE_USER_CLOSES_WINDOW / 2);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(ERROR_USER_INTERRUPT);
+  });
 });
