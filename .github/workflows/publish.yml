@@ -7,6 +7,8 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-20.04
+    env:
+      working-directory: js-library
 
     steps:
       - name: Checkout
@@ -17,14 +19,19 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - run: npm install -g npm
       - name: Install Dependencies
+        working-directory: ${{env.working-directory}}
         run: npm ci
       - name: Build
+        working-directory: ${{env.working-directory}}
         run: npm run build
       - name: Test
+        working-directory: ${{env.working-directory}}
         run: npm test
       - name: Set up npm
+        working-directory: ${{env.working-directory}}
         run: printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' registry=https://registry.npmjs.org/ always-auth=true >> .npmrc
       - name: Publish
+        working-directory: ${{env.working-directory}}
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
