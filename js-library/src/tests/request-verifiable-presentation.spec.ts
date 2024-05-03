@@ -48,7 +48,7 @@ describe("Request Verifiable Credentials function", () => {
   };
 
   beforeEach(() => {
-    window.open = vi.fn();
+    window.open = vi.fn().mockReturnValue({ close: vi.fn(), closed: false });
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.useFakeTimers();
   });
@@ -339,6 +339,7 @@ describe("Request Verifiable Credentials function", () => {
     window.open = vi.fn().mockImplementation(() => {
       const iiWindow = {
         closed: false,
+        close: vi.fn(),
       };
       // User closes the window after 1 second
       setTimeout(() => {
@@ -366,6 +367,38 @@ describe("Request Verifiable Credentials function", () => {
     expect(onError).toHaveBeenCalledWith(ERROR_USER_INTERRUPT);
   });
 
+  it("calls onError if user closes identity provider window even before the flow starts", async () => {
+    const onError = vi.fn();
+    const DURATION_BEFORE_USER_CLOSES_WINDOW = 1000;
+    window.open = vi.fn().mockImplementation(() => {
+      const iiWindow = {
+        closed: false,
+        close: vi.fn(),
+      };
+      // User closes the window after 1 second
+      setTimeout(() => {
+        iiWindow.closed = true;
+      }, DURATION_BEFORE_USER_CLOSES_WINDOW);
+
+      return iiWindow;
+    });
+    requestVerifiablePresentation({
+      onSuccess: unreachableFn,
+      onError,
+      credentialData,
+      issuerData,
+      derivationOrigin: undefined,
+      identityProvider,
+    });
+
+    vi.advanceTimersByTime(DURATION_BEFORE_USER_CLOSES_WINDOW / 2);
+    expect(onError).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(DURATION_BEFORE_USER_CLOSES_WINDOW / 2);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(ERROR_USER_INTERRUPT);
+  });
+
   it("should not call onError when window closes after successful flow", async () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
@@ -373,7 +406,7 @@ describe("Request Verifiable Credentials function", () => {
       closed: false,
       close() {
         this.closed = true;
-      }
+      },
     };
     window.open = vi.fn().mockReturnValue(iiWindow);
     requestVerifiablePresentation({

@@ -49,7 +49,18 @@ const iiWindows: Map<FlowId, Window | null> = new Map();
 const createFlowId = (): FlowId => nanoid();
 
 type FlowId = string;
-const currentFlows = new Set<FlowId>();
+/**
+ * State Machine of the flow:
+ *    /--------------------------------------------- Identity Provider closes window -----------------------------------------------------\
+ *   |--- User closes window ----\---------------------------------\---------------------------------\                                    |
+ *   |                           |                                 |                                 |                                    |
+ * (Off) -- open window --> (ongoing) -- receive ready msg --> (ongoing) -- send request msg --> (ongoing) -- receive response msg --> (finalized)
+ *
+ * We care about how the window is closed because in case of the user closing the window, we want to call `onError` with `ERROR_USER_INTERRUPT`.
+ * But we can't listen to the event of the user closing the window. The only way we know about it is by checking at intervals whether the window is closed.
+ */
+type Status = "initialized" | "started" | "ongoing" | "finalized";
+const currentFlows = new Map<FlowId, Status>();
 
 const INTERRUPT_CHECK_INTERVAL = 500;
 export const ERROR_USER_INTERRUPT = "UserInterrupt";
@@ -106,7 +117,8 @@ const isExpectedNotification = ({
   evnt: MessageEvent;
   flowId: FlowId;
 }): boolean =>
-  evnt.data?.method === VC_START_METHOD && !currentFlows.has(flowId);
+  evnt.data?.method === VC_START_METHOD &&
+  currentFlows.get(flowId) === "initialized";
 
 // As defined in the spec: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md#3-get-a-response
 const isKnownFlowMessage = ({
@@ -115,7 +127,8 @@ const isKnownFlowMessage = ({
 }: {
   evnt: MessageEvent;
   flowId: FlowId;
-}): boolean => currentFlows.has(evnt.data?.id) && evnt.data?.id === flowId;
+}): boolean =>
+  currentFlows.get(evnt.data?.id) === "ongoing" && evnt.data?.id === flowId;
 
 export const requestVerifiablePresentation = ({
   onSuccess,
@@ -155,14 +168,15 @@ export const requestVerifiablePresentation = ({
     }
 
     if (isExpectedNotification({ evnt, flowId: currentFlowId })) {
+      currentFlows.set(currentFlowId, "started");
       const request = createCredentialRequest({
         derivationOrigin,
         issuerData,
         credentialData,
         nextFlowId: currentFlowId,
       });
-      currentFlows.add(request.id);
       evnt.source?.postMessage(request, { targetOrigin: evnt.origin });
+      currentFlows.set(nextFlowId, "ongoing");
       return;
     }
 
@@ -170,13 +184,12 @@ export const requestVerifiablePresentation = ({
       try {
         // Identity Provider closes the window after sending the response.
         // We are checking in an interval whether the user closed the window.
-        // Removing the flow from currentFlows prevents interpreting that the user interrupted the flow.
-        // To check this in a test, I put `onSuccess` call inside a setTimeout
-        // to simulate that handling took longer than the check for the user closing the window.
+        // Setting the status to "finalized" to avoid calling `onError` in `checkInterruption` while we are dealing with the response.
+        // To check this in the test "should not call onError when window closes after successful flow"
+        // I put `onSuccess` call inside a setTimeout to simulate that handling took long
+        // and force the `checkValidation` to see that the window was closed.
         // Then I advanced the time in the test and checked that `onSuccess` was called, and not `onError`.
-        // The test "should not call onError when window closes after successful flow" was failing
-        // if we didn't remove the curret flow id from currentFlows.
-        currentFlows.delete(evnt.data.id);
+        currentFlows.set(evnt.data.id, "finalized");
         const credentialResponse = getCredentialResponse(evnt);
         onSuccess(credentialResponse);
       } catch (err) {
@@ -184,6 +197,7 @@ export const requestVerifiablePresentation = ({
           err instanceof Error ? err.message : JSON.stringify(err);
         onError(`Error getting the verifiable credential: ${message}`);
       } finally {
+        currentFlows.delete(currentFlowId);
         iiWindows.get(currentFlowId)?.close();
         iiWindows.delete(currentFlowId);
         window.removeEventListener("message", handleCurrentFlow);
@@ -196,28 +210,31 @@ export const requestVerifiablePresentation = ({
     );
   };
   const nextFlowId = createFlowId();
+  currentFlows.set(nextFlowId, "initialized");
   const handleCurrentFlow = handleFlowFactory(nextFlowId);
   window.addEventListener("message", handleCurrentFlow);
   const url = new URL(identityProvider);
   url.pathname = "vc-flow/";
   // As defined in the spec: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md#1-load-ii-in-a-new-window
   const iiWindow = window.open(url, "idpWindow", windowOpenerFeatures);
-  // Check if the _idpWindow is closed by user.
-  const checkInterruption = (flowId: FlowId): void => {
-    // The _idpWindow is opened and not yet closed by the client
-    if (iiWindow) {
-      if (iiWindow.closed && currentFlows.has(flowId)) {
+  if (iiWindow !== null) {
+    iiWindows.set(nextFlowId, iiWindow);
+    // Check if the _idpWindow is closed by user.
+    const checkInterruption = (flowId: FlowId): void => {
+      // The _idpWindow is opened and not yet closed by the client
+      if (
+        iiWindow.closed &&
+        currentFlows.has(flowId) &&
+        currentFlows.get(flowId) !== "finalized"
+      ) {
         currentFlows.delete(flowId);
         iiWindows.delete(flowId);
         window.removeEventListener("message", handleCurrentFlow);
         onError(ERROR_USER_INTERRUPT);
-      } else {
+      } else if (iiWindows.has(flowId)) {
         setTimeout(() => checkInterruption(flowId), INTERRUPT_CHECK_INTERVAL);
       }
-    }
-  };
-  checkInterruption(nextFlowId);
-  if (iiWindow !== null) {
-    iiWindows.set(nextFlowId, iiWindow);
+    };
+    checkInterruption(nextFlowId);
   }
 };
