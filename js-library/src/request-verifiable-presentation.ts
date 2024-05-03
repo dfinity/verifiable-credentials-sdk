@@ -50,12 +50,6 @@ const createFlowId = (): FlowId => nanoid();
 
 type FlowId = string;
 const currentFlows = new Set<FlowId>();
-// Used to check race condition between
-// * Finishing handling a successful window message.
-// * Checking for closed window by user.
-// We don't want to call onError while we are managing a successful flow.
-
-const onGoingSuccessfulFlows = new Set<FlowId>();
 
 const INTERRUPT_CHECK_INTERVAL = 500;
 export const ERROR_USER_INTERRUPT = "UserInterrupt";
