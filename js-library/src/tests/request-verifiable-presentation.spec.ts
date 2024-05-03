@@ -337,16 +337,16 @@ describe("Request Verifiable Credentials function", () => {
     const onError = vi.fn();
     const DURATION_BEFORE_USER_CLOSES_WINDOW = 1000;
     window.open = vi.fn().mockImplementation(() => {
-      const iiWindow = {
+      const idpWindow = {
         closed: false,
         close: vi.fn(),
       };
       // User closes the window after 1 second
       setTimeout(() => {
-        iiWindow.closed = true;
+        idpWindow.closed = true;
       }, DURATION_BEFORE_USER_CLOSES_WINDOW);
 
-      return iiWindow;
+      return idpWindow;
     });
     requestVerifiablePresentation({
       onSuccess: unreachableFn,
@@ -371,16 +371,16 @@ describe("Request Verifiable Credentials function", () => {
     const onError = vi.fn();
     const DURATION_BEFORE_USER_CLOSES_WINDOW = 1000;
     window.open = vi.fn().mockImplementation(() => {
-      const iiWindow = {
+      const idpWindow = {
         closed: false,
         close: vi.fn(),
       };
       // User closes the window after 1 second
       setTimeout(() => {
-        iiWindow.closed = true;
+        idpWindow.closed = true;
       }, DURATION_BEFORE_USER_CLOSES_WINDOW);
 
-      return iiWindow;
+      return idpWindow;
     });
     requestVerifiablePresentation({
       onSuccess: unreachableFn,
@@ -399,16 +399,22 @@ describe("Request Verifiable Credentials function", () => {
     expect(onError).toHaveBeenCalledWith(ERROR_USER_INTERRUPT);
   });
 
+  // Identity Provider closes the window after sending the response.
+  // We are checking in an interval whether the user closed the window.
+  // Setting the status to "finalized" to avoid calling `onError` in `checkInterruption` while we are dealing with the response.
+  // To check this in the test, I wrapped the `onSuccess` call inside a setTimeout to simulate that handling took long
+  // and force the `checkValidation` to see that the window was closed.
+  // Then I advanced the time in the test and checked that `onSuccess` was called, and not `onError`.
   it("should not call onError when window closes after successful flow", async () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
-    const iiWindow = {
+    const idpWindow = {
       closed: false,
       close() {
         this.closed = true;
       },
     };
-    window.open = vi.fn().mockReturnValue(iiWindow);
+    window.open = vi.fn().mockReturnValue(idpWindow);
     requestVerifiablePresentation({
       onSuccess,
       onError,

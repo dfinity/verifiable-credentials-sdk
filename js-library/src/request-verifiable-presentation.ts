@@ -45,15 +45,15 @@ export type VerifiablePresentationResponse =
 /**
  * Helper functions
  */
-const iiWindows: Map<FlowId, Window | null> = new Map();
+const idpWindows: Map<FlowId, Window | null> = new Map();
 const createFlowId = (): FlowId => nanoid();
 
 type FlowId = string;
 /**
  * State Machine of the flow:
- *    /--------------------------------------------- Identity Provider closes window -----------------------------------------------------\
- *   |--- User closes window ----\---------------------------------\---------------------------------\                                    |
- *   |                           |                                 |                                 |                                    |
+ *    /<-------------------------------------------- Identity Provider closes window -----------------------------------------------------\
+ *   |<-- User closes window ----\<--------------------------------\<--------------------------------\                                    |
+ *   v                           |                                 |                                 |                                    |
  * (Off) -- open window --> (ongoing) -- receive ready msg --> (ongoing) -- send request msg --> (ongoing) -- receive response msg --> (finalized)
  *
  * We care about how the window is closed because in case of the user closing the window, we want to call `onError` with `ERROR_USER_INTERRUPT`.
@@ -182,13 +182,6 @@ export const requestVerifiablePresentation = ({
 
     if (isKnownFlowMessage({ evnt, flowId: currentFlowId })) {
       try {
-        // Identity Provider closes the window after sending the response.
-        // We are checking in an interval whether the user closed the window.
-        // Setting the status to "finalized" to avoid calling `onError` in `checkInterruption` while we are dealing with the response.
-        // To check this in the test "should not call onError when window closes after successful flow"
-        // I put `onSuccess` call inside a setTimeout to simulate that handling took long
-        // and force the `checkValidation` to see that the window was closed.
-        // Then I advanced the time in the test and checked that `onSuccess` was called, and not `onError`.
         currentFlows.set(evnt.data.id, "finalized");
         const credentialResponse = getCredentialResponse(evnt);
         onSuccess(credentialResponse);
@@ -198,8 +191,8 @@ export const requestVerifiablePresentation = ({
         onError(`Error getting the verifiable credential: ${message}`);
       } finally {
         currentFlows.delete(currentFlowId);
-        iiWindows.get(currentFlowId)?.close();
-        iiWindows.delete(currentFlowId);
+        idpWindows.get(currentFlowId)?.close();
+        idpWindows.delete(currentFlowId);
         window.removeEventListener("message", handleCurrentFlow);
       }
       return;
@@ -216,22 +209,22 @@ export const requestVerifiablePresentation = ({
   const url = new URL(identityProvider);
   url.pathname = "vc-flow/";
   // As defined in the spec: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md#1-load-ii-in-a-new-window
-  const iiWindow = window.open(url, "idpWindow", windowOpenerFeatures);
-  if (iiWindow !== null) {
-    iiWindows.set(nextFlowId, iiWindow);
+  const idpWindow = window.open(url, "idpWindow", windowOpenerFeatures);
+  if (idpWindow !== null) {
+    idpWindows.set(nextFlowId, idpWindow);
     // Check if the _idpWindow is closed by user.
     const checkInterruption = (flowId: FlowId): void => {
       // The _idpWindow is opened and not yet closed by the client
       if (
-        iiWindow.closed &&
+        idpWindow.closed &&
         currentFlows.has(flowId) &&
         currentFlows.get(flowId) !== "finalized"
       ) {
         currentFlows.delete(flowId);
-        iiWindows.delete(flowId);
+        idpWindows.delete(flowId);
         window.removeEventListener("message", handleCurrentFlow);
         onError(ERROR_USER_INTERRUPT);
-      } else if (iiWindows.has(flowId)) {
+      } else if (idpWindows.has(flowId)) {
         setTimeout(() => checkInterruption(flowId), INTERRUPT_CHECK_INTERVAL);
       }
     };
