@@ -38,7 +38,7 @@ export type CredentialsRequest = {
  * Output types
  */
 type VerifiablePresentation = string;
-type VerifiablePresentationResponse =
+export type VerifiablePresentationResponse =
   | { Ok: VerifiablePresentation }
   | { Err: string };
 
@@ -50,6 +50,12 @@ const createFlowId = (): FlowId => nanoid();
 
 type FlowId = string;
 const currentFlows = new Set<FlowId>();
+// Used to check race condition between
+// * Finishing handling a successful window message.
+// * Checking for closed window by user.
+// We don't want to call onError while we are managing a successful flow.
+
+const onGoingSuccessfulFlows = new Set<FlowId>();
 
 const INTERRUPT_CHECK_INTERVAL = 500;
 export const ERROR_USER_INTERRUPT = "UserInterrupt";
@@ -168,6 +174,15 @@ export const requestVerifiablePresentation = ({
 
     if (isKnownFlowMessage({ evnt, flowId: currentFlowId })) {
       try {
+        // Identity Provider closes the window after sending the response.
+        // We are checking in an interval whether the user closed the window.
+        // Removing the flow from currentFlows prevents interpreting that the user interrupted the flow.
+        // To check this in a test, I put `onSuccess` call inside a setTimeout
+        // to simulate that handling took longer than the check for the user closing the window.
+        // Then I advanced the time in the test and checked that `onSuccess` was called, and not `onError`.
+        // The test "should not call onError when window closes after successful flow" was failing
+        // if we didn't remove the curret flow id from currentFlows.
+        currentFlows.delete(evnt.data.id);
         const credentialResponse = getCredentialResponse(evnt);
         onSuccess(credentialResponse);
       } catch (err) {
@@ -175,7 +190,6 @@ export const requestVerifiablePresentation = ({
           err instanceof Error ? err.message : JSON.stringify(err);
         onError(`Error getting the verifiable credential: ${message}`);
       } finally {
-        currentFlows.delete(evnt.data.id);
         iiWindows.get(currentFlowId)?.close();
         iiWindows.delete(currentFlowId);
         window.removeEventListener("message", handleCurrentFlow);
@@ -195,17 +209,20 @@ export const requestVerifiablePresentation = ({
   // As defined in the spec: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md#1-load-ii-in-a-new-window
   const iiWindow = window.open(url, "idpWindow", windowOpenerFeatures);
   // Check if the _idpWindow is closed by user.
-  const checkInterruption = (): void => {
+  const checkInterruption = (flowId: FlowId): void => {
     // The _idpWindow is opened and not yet closed by the client
     if (iiWindow) {
-      if (iiWindow.closed) {
+      if (iiWindow.closed && currentFlows.has(flowId)) {
+        currentFlows.delete(flowId);
+        iiWindows.delete(flowId);
+        window.removeEventListener("message", handleCurrentFlow);
         onError(ERROR_USER_INTERRUPT);
       } else {
-        setTimeout(checkInterruption, INTERRUPT_CHECK_INTERVAL);
+        setTimeout(() => checkInterruption(flowId), INTERRUPT_CHECK_INTERVAL);
       }
     }
   };
-  checkInterruption();
+  checkInterruption(nextFlowId);
   if (iiWindow !== null) {
     iiWindows.set(nextFlowId, iiWindow);
   }

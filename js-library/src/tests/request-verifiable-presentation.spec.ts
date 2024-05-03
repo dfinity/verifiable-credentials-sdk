@@ -365,4 +365,36 @@ describe("Request Verifiable Credentials function", () => {
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledWith(ERROR_USER_INTERRUPT);
   });
+
+  it("should not call onError when window closes after successful flow", async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const iiWindow = {
+      closed: false,
+      close() {
+        this.closed = true;
+      }
+    };
+    window.open = vi.fn().mockReturnValue(iiWindow);
+    requestVerifiablePresentation({
+      onSuccess,
+      onError,
+      credentialData,
+      issuerData,
+      derivationOrigin: undefined,
+      identityProvider,
+    });
+
+    const {
+      request: { id },
+    } = await startVcFlow();
+    mockMessageFromIdentityProvider(vcVerifiablePresentationMessageSuccess(id));
+
+    // onSuccess is called after closing the window.
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+
+    // `requestVerifiablePresentation` checks every 500ms if the window is closed.
+    vi.advanceTimersByTime(600);
+    expect(onError).not.toHaveBeenCalled();
+  });
 });
