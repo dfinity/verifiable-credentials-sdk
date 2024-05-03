@@ -34,15 +34,36 @@ export type CredentialsRequest = {
     derivationOrigin: string | undefined;
   };
 };
+/**
+ * Output types
+ */
+type VerifiablePresentation = string;
+export type VerifiablePresentationResponse =
+  | { Ok: VerifiablePresentation }
+  | { Err: string };
 
 /**
  * Helper functions
  */
-const iiWindows: Map<FlowId, Window | null> = new Map();
+const idpWindows: Map<FlowId, Window | null> = new Map();
 const createFlowId = (): FlowId => nanoid();
 
 type FlowId = string;
-const currentFlows = new Set<FlowId>();
+/**
+ * State Machine of the flow:
+ *    /<-------------------------------------------- Identity Provider closes window -----------------------------------------------------\
+ *   |<-- User closes window ----\<--------------------------------\<--------------------------------\                                    |
+ *   v                           |                                 |                                 |                                    |
+ * (Off) -- open window --> (ongoing) -- receive ready msg --> (ongoing) -- send request msg --> (ongoing) -- receive response msg --> (finalized)
+ *
+ * We care about how the window is closed because in case of the user closing the window, we want to call `onError` with `ERROR_USER_INTERRUPT`.
+ * But we can't listen to the event of the user closing the window. The only way we know about it is by checking at intervals whether the window is closed.
+ */
+type Status = "initialized" | "started" | "ongoing" | "finalized";
+const currentFlows = new Map<FlowId, Status>();
+
+const INTERRUPT_CHECK_INTERVAL = 500;
+export const ERROR_USER_INTERRUPT = "UserInterrupt";
 
 // As defined in the spec: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md#2-request-a-vc
 const createCredentialRequest = ({
@@ -69,10 +90,11 @@ const createCredentialRequest = ({
   };
 };
 
-const getCredential = (evnt: MessageEvent): string => {
+const getCredentialResponse = (
+  evnt: MessageEvent,
+): VerifiablePresentationResponse => {
   if (evnt.data?.error !== undefined) {
-    // TODO: Return this error in onSuccess, not onError.
-    throw new Error(evnt.data.error);
+    return { Err: evnt.data.error };
   }
   const verifiablePresentation = evnt.data?.result?.verifiablePresentation;
   if (verifiablePresentation === undefined) {
@@ -80,7 +102,7 @@ const getCredential = (evnt: MessageEvent): string => {
       `Key 'verifiablePresentation' not found in the message data: ${JSON.stringify(evnt.data)}`,
     );
   }
-  return verifiablePresentation;
+  return { Ok: verifiablePresentation };
 };
 
 const isJSONRPC = (evnt: MessageEvent): boolean => {
@@ -95,7 +117,8 @@ const isExpectedNotification = ({
   evnt: MessageEvent;
   flowId: FlowId;
 }): boolean =>
-  evnt.data?.method === VC_START_METHOD && !currentFlows.has(flowId);
+  evnt.data?.method === VC_START_METHOD &&
+  currentFlows.get(flowId) === "initialized";
 
 // As defined in the spec: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md#3-get-a-response
 const isKnownFlowMessage = ({
@@ -104,7 +127,8 @@ const isKnownFlowMessage = ({
 }: {
   evnt: MessageEvent;
   flowId: FlowId;
-}): boolean => currentFlows.has(evnt.data?.id) && evnt.data?.id === flowId;
+}): boolean =>
+  currentFlows.get(evnt.data?.id) === "ongoing" && evnt.data?.id === flowId;
 
 export const requestVerifiablePresentation = ({
   onSuccess,
@@ -115,7 +139,9 @@ export const requestVerifiablePresentation = ({
   derivationOrigin,
   identityProvider,
 }: {
-  onSuccess: (verifiablePresentation: string) => void | Promise<void>;
+  onSuccess: (
+    verifiablePresentation: VerifiablePresentationResponse,
+  ) => void | Promise<void>;
   onError: (err?: string) => void | Promise<void>;
   credentialData: CredentialRequestData;
   issuerData: IssuerData;
@@ -142,29 +168,31 @@ export const requestVerifiablePresentation = ({
     }
 
     if (isExpectedNotification({ evnt, flowId: currentFlowId })) {
+      currentFlows.set(currentFlowId, "started");
       const request = createCredentialRequest({
         derivationOrigin,
         issuerData,
         credentialData,
         nextFlowId: currentFlowId,
       });
-      currentFlows.add(request.id);
       evnt.source?.postMessage(request, { targetOrigin: evnt.origin });
+      currentFlows.set(nextFlowId, "ongoing");
       return;
     }
 
     if (isKnownFlowMessage({ evnt, flowId: currentFlowId })) {
       try {
-        const credential = getCredential(evnt);
-        onSuccess(credential);
+        currentFlows.set(evnt.data.id, "finalized");
+        const credentialResponse = getCredentialResponse(evnt);
+        onSuccess(credentialResponse);
       } catch (err) {
         const message =
           err instanceof Error ? err.message : JSON.stringify(err);
         onError(`Error getting the verifiable credential: ${message}`);
       } finally {
-        currentFlows.delete(evnt.data.id);
-        iiWindows.get(currentFlowId)?.close();
-        iiWindows.delete(currentFlowId);
+        currentFlows.delete(currentFlowId);
+        idpWindows.get(currentFlowId)?.close();
+        idpWindows.delete(currentFlowId);
         window.removeEventListener("message", handleCurrentFlow);
       }
       return;
@@ -175,15 +203,31 @@ export const requestVerifiablePresentation = ({
     );
   };
   const nextFlowId = createFlowId();
+  currentFlows.set(nextFlowId, "initialized");
   const handleCurrentFlow = handleFlowFactory(nextFlowId);
-  // TODO: Check if user closed the window and return an error.
-  // Check how AuthClient does it: https://github.com/dfinity/agent-js/blob/a51bd5b837fd5f98daca5a45dfc4a060a315e62e/packages/auth-client/src/index.ts#L489
   window.addEventListener("message", handleCurrentFlow);
   const url = new URL(identityProvider);
   url.pathname = "vc-flow/";
   // As defined in the spec: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md#1-load-ii-in-a-new-window
-  const iiWindow = window.open(url, "idpWindow", windowOpenerFeatures);
-  if (iiWindow !== null) {
-    iiWindows.set(nextFlowId, iiWindow);
+  const idpWindow = window.open(url, "idpWindow", windowOpenerFeatures);
+  if (idpWindow !== null) {
+    idpWindows.set(nextFlowId, idpWindow);
+    // Check if the _idpWindow is closed by user.
+    const checkInterruption = (flowId: FlowId): void => {
+      // The _idpWindow is opened and not yet closed by the client
+      if (
+        idpWindow.closed &&
+        currentFlows.has(flowId) &&
+        currentFlows.get(flowId) !== "finalized"
+      ) {
+        currentFlows.delete(flowId);
+        idpWindows.delete(flowId);
+        window.removeEventListener("message", handleCurrentFlow);
+        onError(ERROR_USER_INTERRUPT);
+      } else if (idpWindows.has(flowId)) {
+        setTimeout(() => checkInterruption(flowId), INTERRUPT_CHECK_INTERVAL);
+      }
+    };
+    checkInterruption(nextFlowId);
   }
 };
