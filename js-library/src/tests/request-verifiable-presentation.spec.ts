@@ -367,6 +367,23 @@ describe("Request Verifiable Credentials function", () => {
     expect(onError).toHaveBeenCalledWith(ERROR_USER_INTERRUPT);
   });
 
+  it("calls onError if `identityProvider is not a valid URL`", async () => {
+    const onError = vi.fn();
+    requestVerifiablePresentation({
+      onSuccess: unreachableFn,
+      onError,
+      credentialData,
+      issuerData,
+      derivationOrigin: undefined,
+      identityProvider: "invalid-url",
+    });
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(
+      "The parameter `identityProvider` must be a valid URL.",
+    );
+  });
+
   it("calls onError if user closes identity provider window even before the flow starts", async () => {
     const onError = vi.fn();
     const DURATION_BEFORE_USER_CLOSES_WINDOW = 1000;

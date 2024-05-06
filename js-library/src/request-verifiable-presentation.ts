@@ -1,3 +1,11 @@
+/**
+ * This module provides a function to request a verifiable presentation to an issuer through the Identity Provider.
+ *
+ * More info about the flow: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md
+ *
+ * There is only one function exposed: `requestVerifiablePresentation`.
+ */
+import type { Principal } from "@dfinity/principal";
 import { nanoid } from "nanoid";
 
 /**
@@ -14,11 +22,11 @@ export type CredentialRequestSpec = {
 };
 export type CredentialRequestData = {
   credentialSpec: CredentialRequestSpec;
-  credentialSubject: string;
+  credentialSubject: Principal;
 };
 export type IssuerData = {
   origin: string;
-  canisterId?: string;
+  canisterId?: Principal;
 };
 const VC_REQUEST_METHOD = "request_credential";
 const VC_START_METHOD = "vc-flow-ready";
@@ -28,7 +36,10 @@ export type CredentialsRequest = {
   jsonrpc: typeof JSON_RPC_VERSION;
   method: typeof VC_REQUEST_METHOD;
   params: {
-    issuer: IssuerData;
+    issuer: {
+      origin: string;
+      canisterId?: string;
+    };
     credentialSpec: CredentialRequestSpec;
     credentialSubject: string;
     derivationOrigin: string | undefined;
@@ -82,9 +93,12 @@ const createCredentialRequest = ({
     jsonrpc: JSON_RPC_VERSION,
     method: VC_REQUEST_METHOD,
     params: {
-      issuer: issuerData,
+      issuer: {
+        origin: issuerData.origin,
+        canisterId: issuerData.canisterId?.toText(),
+      },
       credentialSpec,
-      credentialSubject,
+      credentialSubject: credentialSubject.toText(),
       derivationOrigin: derivationOrigin,
     },
   };
@@ -130,6 +144,25 @@ const isKnownFlowMessage = ({
 }): boolean =>
   currentFlows.get(evnt.data?.id) === "ongoing" && evnt.data?.id === flowId;
 
+/**
+ * Function to request a verifiable presentation to an issuer through the Identity Provider.
+ *
+ * This function starts the connection with the Identity Provider through window post messages and handles the flow of the verifiable credential.
+ *
+ * @param {object} params
+ * @param {function} params.onSuccess - Callback function that is called when the flow with the Identity Provider is successful.
+ * It receives either the verifiable presentation or an message that the credential was not received.
+ * The message doesn't expose different errors to keep the privacy of the user.
+ * @param {function} params.onError - Callback function that is called when the flow has some technical error or the user closes the window.
+ * @param {CredentialRequestData} params.credentialData - Data to request the verifiable credential.
+ * @param {IssuerData} params.issuerData - Data of the issuer.
+ * @param {string} params.windowOpenerFeatures - Features of the window that opens the Identity Provider.
+ * @param {string} params.derivationOrigin - Indicates an origina that should be used for principal derivation.
+ * It's the same value as the one used when logging in.
+ * More info: https://internetcomputer.org/docs/current/references/ii-spec/#alternative-frontend-origins
+ * @param {string} params.identityProvider - URL of the Identity Provider.
+ * @returns {void}
+ */
 export const requestVerifiablePresentation = ({
   onSuccess,
   onError,
@@ -148,7 +181,7 @@ export const requestVerifiablePresentation = ({
   windowOpenerFeatures?: string;
   derivationOrigin: string | undefined;
   identityProvider: string;
-}) => {
+}): void => {
   const handleFlowFactory = (currentFlowId: FlowId) => (evnt: MessageEvent) => {
     // The handler is listening to all window messages.
     // For example, a browser extension could send messages that we want to ignore.
@@ -206,7 +239,13 @@ export const requestVerifiablePresentation = ({
   currentFlows.set(nextFlowId, "initialized");
   const handleCurrentFlow = handleFlowFactory(nextFlowId);
   window.addEventListener("message", handleCurrentFlow);
-  const url = new URL(identityProvider);
+  let url;
+  try {
+    url = new URL(identityProvider);
+  } catch (err) {
+    onError("The parameter `identityProvider` must be a valid URL.");
+    return;
+  }
   url.pathname = "vc-flow/";
   // As defined in the spec: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md#1-load-ii-in-a-new-window
   const idpWindow = window.open(url, "idpWindow", windowOpenerFeatures);
