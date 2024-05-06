@@ -162,12 +162,12 @@ export type RequestVerifiablePresentationParams = {
  * Function to request a verifiable presentation to an issuer through an Identity Provider.
  *
  * Summary of the flow:
- * - The function opens a new window or tab with the Identity Provider.
- * - Waits for a window post message from the Identity Provider.
- * - Sends a request to the Identity Provider through the window post message.
- * - Waits for the response from the Identity Provider.
- * - Calls the `onSuccess` callback when the flow was successful. Not necessarily that the credential was received.
- * - Calls the `onError` callback when the flow has some technical error or the user closes the window.
+ * - Open a new window or tab with the Identity Provider.
+ * - Wait for a window post message from the Identity Provider.
+ * - Send a request to the Identity Provider through the window post message.
+ * - Wait for the response from the Identity Provider.
+ * - Call `onSuccess` callback when the flow was successful. Not necessarily that the credential was received.
+ * - Call `onError` callback when the flow has some technical error or the user closes the window.
  *
  * @param {RequestVerifiablePresentationParams} params
  * @param {OnSuccessCallback} params.onSuccess - Callback function that is called when the flow with the Identity Provider is successful.
@@ -177,6 +177,7 @@ export type RequestVerifiablePresentationParams = {
  * @param {CredentialRequestData} params.credentialData - Data to request the verifiable credential.
  * @param {IssuerData} params.issuerData - Data of the issuer.
  * @param {string} params.windowOpenerFeatures - Features of the window that opens the Identity Provider.
+ *   @example "toolbar=0,location=0,menubar=0,width=500,height=500,left=100,top=100"
  * @param {string} params.derivationOrigin - Indicates an origin that should be used for principal derivation.
  * It's the same value as the one used when logging in.
  * More info: https://internetcomputer.org/docs/current/references/ii-spec/#alternative-frontend-origins

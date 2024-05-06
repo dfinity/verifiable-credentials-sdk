@@ -10,6 +10,6 @@
 
 <!-- Please provide any information or screenshots about the tests that have been done -->
 
-<!-- PENDING after first release # Todos -->
+# Todos
 
-<!-- - [ ] Add entry to changelog (if necessary). -->
+- [ ] Add entry to changelog (if necessary).
