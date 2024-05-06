@@ -1,5 +1,5 @@
 /**
- * This module provides a function to request a verifiable presentation to an issuer through the Identity Provider.
+ * This module provides a function to request a verifiable presentation to an issuer through an Identity Provider.
  *
  * More info about the flow: https://github.com/dfinity/internet-identity/blob/main/docs/vc-spec.md
  *
@@ -52,6 +52,10 @@ type VerifiablePresentation = string;
 export type VerifiablePresentationResponse =
   | { Ok: VerifiablePresentation }
   | { Err: string };
+export type OnSuccessCallback = (
+  verifiablePresentation: VerifiablePresentationResponse,
+) => void | Promise<void>;
+export type OnErrorCallback = (err?: string) => void | Promise<void>;
 
 /**
  * Helper functions
@@ -144,20 +148,36 @@ const isKnownFlowMessage = ({
 }): boolean =>
   currentFlows.get(evnt.data?.id) === "ongoing" && evnt.data?.id === flowId;
 
+export type RequestVerifiablePresentationParams = {
+  onSuccess: OnSuccessCallback;
+  onError: (err?: string) => void | Promise<void>;
+  credentialData: CredentialRequestData;
+  issuerData: IssuerData;
+  windowOpenerFeatures?: string;
+  derivationOrigin: string | undefined;
+  identityProvider: string;
+};
+
 /**
- * Function to request a verifiable presentation to an issuer through the Identity Provider.
+ * Function to request a verifiable presentation to an issuer through an Identity Provider.
  *
- * This function starts the connection with the Identity Provider through window post messages and handles the flow of the verifiable credential.
+ * Summary of the flow:
+ * - The function opens a new window or tab with the Identity Provider.
+ * - Waits for a window post message from the Identity Provider.
+ * - Sends a request to the Identity Provider through the window post message.
+ * - Waits for the response from the Identity Provider.
+ * - Calls the `onSuccess` callback when the flow was successful. Not necessarily that the credential was received.
+ * - Calls the `onError` callback when the flow has some technical error or the user closes the window.
  *
- * @param {object} params
- * @param {function} params.onSuccess - Callback function that is called when the flow with the Identity Provider is successful.
+ * @param {RequestVerifiablePresentationParams} params
+ * @param {OnSuccessCallback} params.onSuccess - Callback function that is called when the flow with the Identity Provider is successful.
  * It receives either the verifiable presentation or an message that the credential was not received.
  * The message doesn't expose different errors to keep the privacy of the user.
- * @param {function} params.onError - Callback function that is called when the flow has some technical error or the user closes the window.
+ * @param {OnErrorCallback} params.onError - Callback function that is called when the flow has some technical error or the user closes the window.
  * @param {CredentialRequestData} params.credentialData - Data to request the verifiable credential.
  * @param {IssuerData} params.issuerData - Data of the issuer.
  * @param {string} params.windowOpenerFeatures - Features of the window that opens the Identity Provider.
- * @param {string} params.derivationOrigin - Indicates an origina that should be used for principal derivation.
+ * @param {string} params.derivationOrigin - Indicates an origin that should be used for principal derivation.
  * It's the same value as the one used when logging in.
  * More info: https://internetcomputer.org/docs/current/references/ii-spec/#alternative-frontend-origins
  * @param {string} params.identityProvider - URL of the Identity Provider.
@@ -171,17 +191,7 @@ export const requestVerifiablePresentation = ({
   windowOpenerFeatures,
   derivationOrigin,
   identityProvider,
-}: {
-  onSuccess: (
-    verifiablePresentation: VerifiablePresentationResponse,
-  ) => void | Promise<void>;
-  onError: (err?: string) => void | Promise<void>;
-  credentialData: CredentialRequestData;
-  issuerData: IssuerData;
-  windowOpenerFeatures?: string;
-  derivationOrigin: string | undefined;
-  identityProvider: string;
-}): void => {
+}: RequestVerifiablePresentationParams): void => {
   const handleFlowFactory = (currentFlowId: FlowId) => (evnt: MessageEvent) => {
     // The handler is listening to all window messages.
     // For example, a browser extension could send messages that we want to ignore.
