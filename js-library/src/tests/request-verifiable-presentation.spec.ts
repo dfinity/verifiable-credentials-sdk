@@ -1,3 +1,4 @@
+import { Principal } from "@dfinity/principal";
 import { vi } from "vitest";
 import {
   ERROR_USER_INTERRUPT,
@@ -8,8 +9,9 @@ import {
 import { credentialPresentationMock } from "./mocks";
 
 describe("Request Verifiable Credentials function", () => {
-  const credentialSubject =
-    "2vtpp-r6lcd-cbfas-qbabv-wxrv5-lsrkj-c4dtb-6ets3-srlqe-xpuzf-vqe";
+  const credentialSubject = Principal.fromText(
+    "2vtpp-r6lcd-cbfas-qbabv-wxrv5-lsrkj-c4dtb-6ets3-srlqe-xpuzf-vqe",
+  );
   const identityProvider = "https://identity.ic0.app";
   const issuerOrigin = "https://jqajs-xiaaa-aaaad-aab5q-cai.ic0.app";
   const derivationOrigin = "https://metaissuer.vc/";
@@ -111,13 +113,19 @@ describe("Request Verifiable Credentials function", () => {
     expect(window.open).toHaveBeenCalledTimes(1);
   });
 
-  it("send expected request to the identity provider with derivationOrigin", async () => {
+  it("send expected request to the identity provider with derivationOrigin and issuer canisterId", async () => {
     const onSuccess = vi.fn();
+    const canisterId = Principal.fromText(
+      "2vtpp-r6lcd-cbfas-qbabv-wxrv5-lsrkj-c4dtb-6ets3-srlqe-xpuzf-vqe",
+    );
     requestVerifiablePresentation({
       onSuccess,
       onError: unreachableFn,
       credentialData,
-      issuerData,
+      issuerData: {
+        canisterId,
+        origin: issuerOrigin,
+      },
       derivationOrigin,
       identityProvider,
     });
@@ -133,9 +141,12 @@ describe("Request Verifiable Credentials function", () => {
       jsonrpc: "2.0",
       method: "request_credential",
       params: {
-        issuer: issuerData,
+        issuer: {
+          canisterId: canisterId.toText(),
+          origin: issuerOrigin,
+        },
         credentialSpec: credentialData.credentialSpec,
-        credentialSubject,
+        credentialSubject: credentialSubject.toText(),
         derivationOrigin,
       },
     });
@@ -365,6 +376,23 @@ describe("Request Verifiable Credentials function", () => {
     vi.advanceTimersByTime(DURATION_BEFORE_USER_CLOSES_WINDOW / 2);
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledWith(ERROR_USER_INTERRUPT);
+  });
+
+  it("calls onError if `identityProvider is not a valid URL`", async () => {
+    const onError = vi.fn();
+    requestVerifiablePresentation({
+      onSuccess: unreachableFn,
+      onError,
+      credentialData,
+      issuerData,
+      derivationOrigin: undefined,
+      identityProvider: "invalid-url",
+    });
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(
+      "The parameter `identityProvider` must be a valid URL.",
+    );
   });
 
   it("calls onError if user closes identity provider window even before the flow starts", async () => {
