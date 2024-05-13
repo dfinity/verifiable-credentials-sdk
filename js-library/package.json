@@ -18,7 +18,6 @@
     "rmdir": "node ./rmdir.mjs",
     "ts-declaration": "tsc --emitDeclarationOnly --outDir dist",
     "build": "npm run rmdir && mkdir -p dist && node esbuild.mjs && npm run ts-declaration",
-    "prepack": "npm run build",
     "test": "tsc --noEmit -p ./tsconfig.spec.json && vitest"
   },
   "repository": {
