@@ -2,6 +2,9 @@ name: Next Publication
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - lm-nightly-release
 
 jobs:
   publish:
