@@ -32,13 +32,9 @@ const updateVersion = async () => {
     return;
   }
 
-  const {
-    version: currentVersion,
-    // name: packageName,
-    ...rest
-  } = JSON.parse(readFileSync(packagePath, "utf-8"));
-
-  // const projectName = packageName.replace("@dfinity/", "");
+  const { version: currentVersion, ...rest } = JSON.parse(
+    readFileSync(packagePath, "utf-8"),
+  );
 
   // Build wip version number
   const version = await nextVersion({
