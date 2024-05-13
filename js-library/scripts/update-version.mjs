@@ -26,7 +26,6 @@ const nextVersion = async ({ project, currentVersion }) => {
 
 const updateVersion = async () => {
   const packagePath = join(process.cwd(), "package.json");
-  console.log(`Updating version in ${packagePath}`);
 
   if (!existsSync(packagePath)) {
     console.log(`Target ${packagePath} does not exist.`);
@@ -39,8 +38,10 @@ const updateVersion = async () => {
     ...rest
   } = JSON.parse(readFileSync(packagePath, "utf-8"));
 
-  console.log(`Name: ${packageName}`);
-  console.log(`Current version: ${currentVersion}`);
+  // Prevents error when publishing the package to NPM
+  if (packageName === undefined) {
+    return;
+  }
   const projectName = packageName.replace("@dfinity/", "");
 
   // Build wip version number
