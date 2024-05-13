@@ -10,8 +10,10 @@ const nextVersion = async ({ project, currentVersion }) => {
     .toISOString()
     .slice(0, 10)}`;
 
+  // Remove the organization namespace to request the npm registry.
+  const projectName = project.replace("@dfinity/", "");
   const { versions } = await (
-    await fetch(`http://registry.npmjs.org/@dfinity/${project}`)
+    await fetch(`http://registry.npmjs.org/@dfinity/${projectName}`)
   ).json();
 
   // The wip version has never been published
@@ -38,11 +40,9 @@ const updateVersion = async () => {
     ...rest
   } = JSON.parse(readFileSync(packagePath, "utf-8"));
 
-  const project = name.replace("@dfinity/", "");
-
   // Build wip version number
   const version = await nextVersion({
-    project,
+    project: name,
     currentVersion,
   });
 
