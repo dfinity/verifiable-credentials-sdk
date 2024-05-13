@@ -6,6 +6,7 @@
   "files": [
     "dist",
     "README.md",
+    "package.json",
     "LICENSE"
   ],
   "engines": {

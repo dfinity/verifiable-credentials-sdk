@@ -38,10 +38,6 @@ const updateVersion = async () => {
     ...rest
   } = JSON.parse(readFileSync(packagePath, "utf-8"));
 
-  // Prevents error when publishing the package to NPM
-  if (packageName === undefined) {
-    return;
-  }
   const projectName = packageName.replace("@dfinity/", "");
 
   // Build wip version number
