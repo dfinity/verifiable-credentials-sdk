@@ -9,7 +9,7 @@ The flow to request a credential is performed through a browser.
 Install library
 
 ```bash
-npm install @dfinty/verifiable-credentials
+npm install @dfinity/verifiable-credentials
 ```
 
 Import per modules:
