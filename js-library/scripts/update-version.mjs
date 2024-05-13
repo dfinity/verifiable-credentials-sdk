@@ -32,21 +32,13 @@ const updateVersion = async () => {
     return;
   }
 
-  const {
-    version: currentVersion,
-    name: packageName,
-    ...rest
-  } = JSON.parse(readFileSync(packagePath, "utf-8"));
-
-  if (packageName === undefined || currentVersion === undefined) {
-    throw new Error("package.json should have name and version fields.");
-  }
-
-  const project = packageName.replace("@dfinity/", "");
+  const { version: currentVersion, ...rest } = JSON.parse(
+    readFileSync(packagePath, "utf-8"),
+  );
 
   // Build wip version number
   const version = await nextVersion({
-    project,
+    project: "verifiable-credentials",
     currentVersion,
   });
 
