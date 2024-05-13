@@ -12,6 +12,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      working-directory: js-library
 
     steps:
       - name: Checkout
@@ -21,11 +23,13 @@ jobs:
           node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
       - name: Package next
-        run: ./js-library/scripts/package-next
+        working-directory: ${{env.working-directory}}
+        run: ./scripts/package-next
       - name: Set up npm
+        working-directory: ${{env.working-directory}}
         run: printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' registry=https://registry.npmjs.org/ always-auth=true >> .npmrc
       - name: Publish
-        working-directory: js-library
+        working-directory: ${{env.working-directory}}
         run: npm publish --provenance --tag next
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
