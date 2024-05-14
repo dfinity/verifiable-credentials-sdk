@@ -7,6 +7,10 @@ Changes in the upcoming versions.
 - Change the type of `CredentialData.credentialSubject` to `Principal`.
 - Change the type of `IssuerData.canisterId` to `Principal`.
 
+## Installation
+
+- List `@dfinity/principal` as a peer dependency.
+
 # 2024.05.03
 
 Release of the NPM library `@dfinity/verifiable-credentials`.

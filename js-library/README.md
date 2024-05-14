@@ -12,6 +12,12 @@ Install library
 npm install @dfinity/verifiable-credentials
 ```
 
+The bundle needs peer dependencies, be sure that following resources are available in your project as well.
+
+```bash
+npm install @dfinity/principal
+```
+
 Import per modules:
 
 ```javascript
