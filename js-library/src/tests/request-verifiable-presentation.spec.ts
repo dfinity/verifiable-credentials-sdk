@@ -17,6 +17,7 @@ describe("Request Verifiable Credentials function", () => {
   const derivationOrigin = "https://metaissuer.vc/";
   const issuerData = {
     origin: issuerOrigin,
+    canisterId: Principal.fromText("2222s-4iaaa-aaaaf-ax2uq-cai"),
   };
   // Source: https://github.com/dfinity/internet-identity/blob/6df217532c7e3d4d465decbd9159ceab5262ba2d/src/vc-api/src/index.ts#L9
   const VcFlowReady = {
@@ -99,7 +100,6 @@ describe("Request Verifiable Credentials function", () => {
       onError: unreachableFn,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
 
@@ -160,7 +160,6 @@ describe("Request Verifiable Credentials function", () => {
       onError: unreachableFn,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
     const {
@@ -179,7 +178,6 @@ describe("Request Verifiable Credentials function", () => {
       onError: unreachableFn,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
     const {
@@ -201,7 +199,6 @@ describe("Request Verifiable Credentials function", () => {
       onError: unreachableFn,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
     mockMessageFromIdentityProvider({
@@ -223,7 +220,6 @@ describe("Request Verifiable Credentials function", () => {
       onError: unreachableFn,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
     const {
@@ -243,7 +239,6 @@ describe("Request Verifiable Credentials function", () => {
       onError,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
     const {
@@ -271,7 +266,6 @@ describe("Request Verifiable Credentials function", () => {
       onError: unreachableFn,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
     const {
@@ -283,7 +277,6 @@ describe("Request Verifiable Credentials function", () => {
       onError: unreachableFn,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
     const {
@@ -310,7 +303,6 @@ describe("Request Verifiable Credentials function", () => {
       onError: unreachableFn,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
 
@@ -364,7 +356,6 @@ describe("Request Verifiable Credentials function", () => {
       onError,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
 
@@ -385,7 +376,6 @@ describe("Request Verifiable Credentials function", () => {
       onError,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider: "invalid-url",
     });
 
@@ -415,7 +405,6 @@ describe("Request Verifiable Credentials function", () => {
       onError,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
 
@@ -448,7 +437,6 @@ describe("Request Verifiable Credentials function", () => {
       onError,
       credentialData,
       issuerData,
-      derivationOrigin: undefined,
       identityProvider,
     });
 

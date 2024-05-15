@@ -26,7 +26,7 @@ export type CredentialRequestData = {
 };
 export type IssuerData = {
   origin: string;
-  canisterId?: Principal;
+  canisterId: Principal;
 };
 const VC_REQUEST_METHOD = "request_credential";
 const VC_START_METHOD = "vc-flow-ready";
@@ -38,11 +38,11 @@ export type CredentialsRequest = {
   params: {
     issuer: {
       origin: string;
-      canisterId?: string;
+      canisterId: string;
     };
     credentialSpec: CredentialRequestSpec;
     credentialSubject: string;
-    derivationOrigin: string | undefined;
+    derivationOrigin?: string;
   };
 };
 /**
@@ -154,7 +154,7 @@ export type RequestVerifiablePresentationParams = {
   credentialData: CredentialRequestData;
   issuerData: IssuerData;
   windowOpenerFeatures?: string;
-  derivationOrigin: string | undefined;
+  derivationOrigin?: string;
   identityProvider: string;
 };
 

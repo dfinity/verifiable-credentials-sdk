@@ -5,7 +5,11 @@ Changes in the upcoming versions.
 ## Breaking Changes
 
 - Change the type of `CredentialData.credentialSubject` to `Principal`.
-- Change the type of `IssuerData.canisterId` to `Principal`.
+- Change the type of `IssuerData.canisterId` to `Principal` and make it mandatory.
+
+## Non-breaking Changes
+
+- `derivationOrigin` field is now optional.
 
 ## Installation
 
