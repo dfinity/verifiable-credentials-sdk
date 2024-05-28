@@ -8,31 +8,81 @@
   <body>
     <h1>Dummy relying party</h1>
     <div>
-      <button id="login">Login</button>
-      <p id="login-status">Not logged in</p>
-      <div id="vc-container" class="hidden">
-        <button id="start-early-adopter-vc">
-          Check Early Adopter Credential
-        </button>
-        <form id="request-attendee-credential">
-          <input
-            type="text"
-            id="event-name"
-            name="event-name"
-            placeholder="Enter the event name to get the credential"
-          />
-          <button type="submit">Request Attendee Credential</button>
-        </form>
+      <div id="not-logged-in">
+        <input
+          type="text"
+          id="ii-url"
+          placeholder="Enter Internet Identity URL"
+        />
+        <button id="login">Login with Internet Identity</button>
       </div>
-      <h4>Encoded Credential</h4>
-      <pre id="vc-result">-</pre>
-      <h4>Decoded Presentation</h4>
-      <pre id="vc-presentation">-</pre>
-      <h4>Decoded Credentials</h4>
-      <p>Alias credential</p>
-      <pre id="vc-alias">-</pre>
-      <p>Requested credential</p>
-      <pre id="vc-credential">-</pre>
+      <div id="logged-in">
+        <p id="user-principal"></p>
+        <form id="request-credential">
+          <div>
+            <label for="issuer-url">Issuer URL:</label>
+            <input
+              type="text"
+              id="issuer-url"
+              name="issuer-url"
+              placeholder="Enter the issuer url"
+            />
+          </div>
+          <div>
+            <label for="credential-type">Credential type:</label>
+            <input
+              type="text"
+              id="credential-type"
+              name="credential-type"
+              placeholder="Enter the credential-type"
+            />
+          </div>
+          <div>
+            <p>Credential Arguments</p>
+            <div id="arguments-template" class="hidden">
+              <p>
+                <span class="key"></span><span class="value"></span
+                ><span class="type"></span>
+              </p>
+            </div>
+            <div id="arguments"></div>
+            <div>
+              <label for="alias">Key:</label>
+              <input
+                type="text"
+                id="argument-key"
+                placeholder="Enter the argument key"
+              />
+              <label for="alias">Value:</label>
+              <input
+                type="text"
+                id="argument-value"
+                placeholder="Enter the argument value"
+              />
+              <label for="alias">Type:</label>
+              <select id="argument-type">
+                <option value="string">String</option>
+                <option value="number">Number</option>
+              </select>
+              <button type="button" id="add-argument">Add</button>
+            </div>
+          </div>
+          <div>
+            <button type="submit">Request Credential</button>
+          </div>
+        </form>
+        <div id="vc-container">
+          <h4>Encoded Credential</h4>
+          <pre id="vc-result">-</pre>
+          <h4>Decoded Presentation</h4>
+          <pre id="vc-presentation">-</pre>
+          <h4>Decoded Credentials</h4>
+          <p>Alias credential</p>
+          <pre id="vc-alias">-</pre>
+          <p>Requested credential</p>
+          <pre id="vc-credential">-</pre>
+        </div>
+      </div>
     </div>
     <style>
       .hidden {
