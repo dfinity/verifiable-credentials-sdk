@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dummy Relying Party</title>
+  </head>
+  <body>
+    <h1>Dummy relying party</h1>
+    <div>
+      <button id="login">Login</button>
+      <p id="login-status">Not logged in</p>
+      <div id="vc-container" class="hidden">
+        <button id="start-early-adopter-vc">
+          Check Early Adopter Credential
+        </button>
+        <form id="request-attendee-credential">
+          <input
+            type="text"
+            id="event-name"
+            name="event-name"
+            placeholder="Enter the event name to get the credential"
+          />
+          <button type="submit">Request Attendee Credential</button>
+        </form>
+      </div>
+      <h4>Encoded Credential</h4>
+      <pre id="vc-result">-</pre>
+      <h4>Decoded Presentation</h4>
+      <pre id="vc-presentation">-</pre>
+      <h4>Decoded Credentials</h4>
+      <p>Alias credential</p>
+      <pre id="vc-alias">-</pre>
+      <p>Requested credential</p>
+      <pre id="vc-credential">-</pre>
+    </div>
+    <style>
+      .hidden {
+        display: none;
+      }
+    </style>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
