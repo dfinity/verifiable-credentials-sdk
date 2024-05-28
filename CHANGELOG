@@ -2,6 +2,10 @@
 
 Changes in the upcoming versions.
 
+## New projects
+
+- Dummy relying party.
+
 ## Breaking Changes
 
 - Change the type of `CredentialData.credentialSubject` to `Principal`.
