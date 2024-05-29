@@ -4,8 +4,6 @@ set -euo pipefail
 # Make sure we always run from the issuer root
 RP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$RP_DIR"
-echo $RP_DIR
-
 
 # Build the frontend
 cd frontend/
