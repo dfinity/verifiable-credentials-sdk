@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "dummy-relying-party",
+    "dummy-issuer"
 ]
 
 [workspace.package]
