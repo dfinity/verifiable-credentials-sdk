@@ -13,89 +13,17 @@ repository = "https://github.com/dfinity/verifiable-credentials-sdk"
 homepage = "https://github.com/dfinity/verifiable-credentials-sdk#readme"
 license = "Apache-2.0"
 
-# [profile.release]
-# lto = true
-# opt-level = 'z'
-# codegen-units = 1
-
 [workspace.dependencies]
-# nom = "7.1"
-# leb128 = "0.2"
-# log = "0.4"
-# hex = "0.4"
 base64 = "0.21"
-# http = "0.2"
-# flate2 = "1.0"
 sha2 = "0.10"
-# urlencoding = "2.1"
-# rstest = "0.18"
-# rstest_reuse = "0.2"
-# tokio = { version = "1.35", features = ["full"] }
-# cached = "0.47"
 lazy_static = "1.4"
-# parking_lot = "0.12"
-
-# serde_bytes = "0.11"
 serde_cbor = "0.11"
-
-# thiserror = "1.0"
 anyhow = "1.0"
-
 candid = "0.10"
-# ic-agent = "0.31"
-# ic-utils = "0.31"
 ic-cdk = "0.12"
 ic-cdk-macros = "0.8"
-
-# wasm-bindgen = "0.2"
-# wasm-bindgen-test = "0.3"
-# serde-wasm-bindgen = "0.5"
-# js-sys = "0.3"
-# console_error_panic_hook = "0.1"
-# wasm-bindgen-console-logger = "0.1"
-# https://github.com/rust-random/rand#wasm-support
-# https://docs.rs/getrandom/latest/getrandom/#webassembly-support
-# rand = "0.8"
-# getrandom = { version = "0.2", features = ["js"] }
-# rand_chacha = "0.3"
-
-# ic-asset-certification = "2.5.0"
-# ic-certification = "2.5.0"
 ic-http-certification = "2.5.0"
-# ic-certification-testing = { path = "./packages/ic-certification-testing" }
-# ic-representation-independent-hash = "2.5.0"
-# ic-certificate-verification = { path = "./packages/ic-certificate-verification", version = "2.5.0" }
-# ic-response-verification = { path = "./packages/ic-response-verification", version = "2.5.0" }
-# ic-response-verification-test-utils = { path = "./packages/ic-response-verification-test-utils" }
-# ic-cbor = { path = "./packages/ic-cbor", version = "2.5.0" }
-
-
-# [workspace.dependencies.ic-types]
-# git = "https://github.com/dfinity/ic"
-# rev = "1290256484f59c3d950c5e9a098e97383b248ad6"
-
-# [workspace.dependencies.ic-crypto-tree-hash]
-# git = "https://github.com/dfinity/ic"
-# rev = "1290256484f59c3d950c5e9a098e97383b248ad6"
-
-# [workspace.dependencies.ic-crypto-internal-threshold-sig-bls12381]
-# git = "https://github.com/dfinity/ic"
-# rev = "1290256484f59c3d950c5e9a098e97383b248ad6"
-
-# [workspace.dependencies.ic-crypto-internal-seed]
-# git = "https://github.com/dfinity/ic"
-# rev = "1290256484f59c3d950c5e9a098e97383b248ad6"
-
-# [workspace.dependencies.ic-crypto-internal-types]
-# git = "https://github.com/dfinity/ic"
-# rev = "1290256484f59c3d950c5e9a098e97383b248ad6"
-
 
 [workspace.dependencies.serde]
 version = "1.0"
 features = ["derive"]
-
-# [workspace.dependencies.miracl_core_bls12381]
-# version = "4.2"
-# default_features = false
-# features = ["std", "allow_alt_compress"]
