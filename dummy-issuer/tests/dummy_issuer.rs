@@ -8,9 +8,9 @@ use vc_util::issuer_api::{
 pub const DUMMY_ISSUER_WASM: &[u8] = include_bytes!("../dummy_issuer.wasm.gz");
 
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
-pub enum ConsentMessageResponse {
-    Ok(Icrc21ConsentInfo),
-    Err(Icrc21Error),
+pub enum VariantResponse<T, E> {
+    Ok(T),
+    Err(E),
 }
 
 #[test]
@@ -43,14 +43,14 @@ fn test_consent_message() {
         unreachable!()
     };
     println!("after update_call");
-    let response: ConsentMessageResponse = decode_one(&reply).unwrap();
+    let response: VariantResponse<Icrc21ConsentInfo, Icrc21Error> = decode_one(&reply).unwrap();
     match response {
-        ConsentMessageResponse::Ok(Icrc21ConsentInfo {
+        VariantResponse::Ok(Icrc21ConsentInfo {
             consent_message,
             language: _lang,
         }) => {
             assert_eq!(consent_message, "Consent message from dummy issuer: Test");
         }
-        ConsentMessageResponse::Err(_) => panic!("Failed to call consent_message"),
+        VariantResponse::Err(_) => panic!("Failed to call consent_message"),
     }
 }
