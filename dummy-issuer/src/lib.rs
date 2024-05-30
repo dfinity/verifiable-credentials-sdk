@@ -87,6 +87,8 @@ fn jwt_error(custom_message: &'static str) -> JwtValidationError {
     ))
 }
 
+// Decodes the id_alias JWS received from II and returns the principal.
+// This function doesn't perform any verification of the signature.
 fn get_id_alias(signed_id_alias: &SignedIdAlias) -> Result<Principal, JwtValidationError> {
     ///// Decode JWS.
     let decoder: Decoder = Decoder::new();
