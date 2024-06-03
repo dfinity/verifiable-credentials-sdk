@@ -9,6 +9,7 @@ dist
 # dfx temporary files
 .dfx/
 canister_ids.json
+.env
 
 # built canisters
 *.wasm

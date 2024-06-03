@@ -1,3 +1,5 @@
+// Canister based on the example "Serving static assets over HTTP (custom)"
+// Reference: https://github.com/dfinity/response-verification/tree/main/examples/http-certification/custom-assets
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use ic_cdk::{
