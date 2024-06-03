@@ -1,0 +1,14 @@
+{
+  "dfx": "0.20.1",
+  "version": 1,
+  "output_env_file": ".env",
+  "canisters": {
+    "dummy_relying_party": {
+      "type": "custom",
+      "candid": "./dummy-relying-party/dummy_relying_party.did",
+      "wasm": "./dummy-relying-party/dummy_relying_party.wasm.gz",
+      "build": "./dummy-relying-party/build.sh",
+      "shrink": false
+    }
+  }
+}
