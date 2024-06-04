@@ -32,6 +32,11 @@ fn install_issuer_canister(pic: &PocketIc) -> Principal {
     canister_id
 }
 
+enum CanisterCall {
+    Query,
+    Update,
+}
+
 mod api {
     use vc_util::issuer_api::{
         GetCredentialRequest, IssueCredentialError, IssuedCredentialData, PrepareCredentialRequest,
@@ -40,10 +45,10 @@ mod api {
 
     use super::*;
 
-    // TODO: Share code with `call_canister_update`
-    fn call_canister_query<'a, Req, Succ, Err>(
+    fn call_canister<'a, Req, Succ, Err>(
         pic: &PocketIc,
         method: &str,
+        call_type: CanisterCall,
         canister_id: CanisterId,
         request: Req,
         sender: Option<Principal>,
@@ -53,44 +58,24 @@ mod api {
         Succ: CandidType + DeserializeOwned,
         Err: CandidType + DeserializeOwned,
     {
-        let consent_message_reply = pic
-            .query_call(
-                canister_id,
-                sender.unwrap_or(Principal::anonymous()),
-                method,
-                encode_one(request).unwrap(),
-            )
-            .expect("Error calling canister");
-        let WasmResult::Reply(reply) = consent_message_reply else {
-            unreachable!()
+        let consent_message_reply = match call_type {
+            CanisterCall::Query => pic
+                .query_call(
+                    canister_id,
+                    sender.unwrap_or(Principal::anonymous()),
+                    method,
+                    encode_one(request).unwrap(),
+                )
+                .expect("Error calling canister"),
+            CanisterCall::Update => pic
+                .update_call(
+                    canister_id,
+                    sender.unwrap_or(Principal::anonymous()),
+                    method,
+                    encode_one(request).unwrap(),
+                )
+                .expect("Error calling canister"),
         };
-        let response: VariantResponse<Succ, Err> = decode_one(&reply).unwrap();
-        match response {
-            VariantResponse::Ok(success) => Ok(success),
-            VariantResponse::Err(err) => Err(err),
-        }
-    }
-
-    fn call_canister_update<'a, Req, Succ, Err>(
-        pic: &PocketIc,
-        method: &str,
-        canister_id: CanisterId,
-        request: Req,
-        sender: Option<Principal>,
-    ) -> Result<Succ, Err>
-    where
-        Req: CandidType,
-        Succ: CandidType + DeserializeOwned,
-        Err: CandidType + DeserializeOwned,
-    {
-        let consent_message_reply = pic
-            .update_call(
-                canister_id,
-                sender.unwrap_or(Principal::anonymous()),
-                method,
-                encode_one(request).unwrap(),
-            )
-            .expect("Error calling canister");
         let WasmResult::Reply(reply) = consent_message_reply else {
             unreachable!()
         };
@@ -107,9 +92,10 @@ mod api {
         request: Icrc21VcConsentMessageRequest,
         sender: Option<Principal>,
     ) -> Result<Icrc21ConsentInfo, Icrc21Error> {
-        call_canister_update::<Icrc21VcConsentMessageRequest, Icrc21ConsentInfo, Icrc21Error>(
+        call_canister::<Icrc21VcConsentMessageRequest, Icrc21ConsentInfo, Icrc21Error>(
             pic,
             "vc_consent_message",
+            CanisterCall::Update,
             canister_id,
             request,
             sender,
@@ -122,9 +108,10 @@ mod api {
         request: DerivationOriginRequest,
         sender: Option<Principal>,
     ) -> Result<DerivationOriginData, DerivationOriginError> {
-        call_canister_update::<DerivationOriginRequest, DerivationOriginData, DerivationOriginError>(
+        call_canister::<DerivationOriginRequest, DerivationOriginData, DerivationOriginError>(
             pic,
             "derivation_origin",
+            CanisterCall::Update,
             canister_id,
             request,
             sender,
@@ -137,9 +124,10 @@ mod api {
         request: PrepareCredentialRequest,
         sender: Option<Principal>,
     ) -> Result<PreparedCredentialData, IssueCredentialError> {
-        call_canister_update::<PrepareCredentialRequest, PreparedCredentialData, IssueCredentialError>(
+        call_canister::<PrepareCredentialRequest, PreparedCredentialData, IssueCredentialError>(
             pic,
             "prepare_credential",
+            CanisterCall::Update,
             canister_id,
             request,
             sender,
@@ -152,9 +140,10 @@ mod api {
         request: GetCredentialRequest,
         sender: Option<Principal>,
     ) -> Result<IssuedCredentialData, IssueCredentialError> {
-        call_canister_query::<GetCredentialRequest, IssuedCredentialData, IssueCredentialError>(
+        call_canister::<GetCredentialRequest, IssuedCredentialData, IssueCredentialError>(
             pic,
             "get_credential",
+            CanisterCall::Query,
             canister_id,
             request,
             sender,
