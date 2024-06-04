@@ -53,6 +53,9 @@ loginButton?.addEventListener("click", async () => {
             .toText()}`;
         }
       },
+      onError: (error) => {
+        console.error(error);
+      },
     });
   } else {
     alert("Please provide an Identity Provider URL");
