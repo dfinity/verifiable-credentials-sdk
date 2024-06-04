@@ -81,10 +81,24 @@ async fn vc_consent_message(
     })
 }
 
+#[update]
+#[candid_method]
+async fn derivation_origin(
+    req: DerivationOriginRequest,
+) -> Result<DerivationOriginData, DerivationOriginError> {
+    Ok(DerivationOriginData {
+        origin: req.frontend_hostname,
+    })
+}
+
 fn jwt_error(custom_message: &'static str) -> JwtValidationError {
     JwtValidationError::CredentialStructure(JwtVcError::InconsistentCredentialJwtClaims(
         custom_message,
     ))
+}
+
+fn internal_error(msg: &str) -> IssueCredentialError {
+    IssueCredentialError::Internal(String::from(msg))
 }
 
 // Decodes the id_alias JWS received from II and returns the principal.
@@ -152,16 +166,6 @@ fn verified_credential(subject_principal: Principal, credential_spec: &Credentia
 
 #[update]
 #[candid_method]
-async fn derivation_origin(
-    req: DerivationOriginRequest,
-) -> Result<DerivationOriginData, DerivationOriginError> {
-    Ok(DerivationOriginData {
-        origin: req.frontend_hostname,
-    })
-}
-
-#[update]
-#[candid_method]
 async fn prepare_credential(
     req: PrepareCredentialRequest,
 ) -> Result<PreparedCredentialData, IssueCredentialError> {
@@ -182,10 +186,6 @@ async fn prepare_credential(
     Ok(PreparedCredentialData {
         prepared_context: Some(ByteBuf::from(credential_jwt.as_bytes())),
     })
-}
-
-fn internal_error(msg: &str) -> IssueCredentialError {
-    IssueCredentialError::Internal(String::from(msg))
 }
 
 #[query]
