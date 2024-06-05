@@ -27,8 +27,8 @@ jobs:
         # We create the canisters first to have the ids when we build the frontend env vars
         run: |
           dfx deploy internet_identity
-          dfx deploy create dummy_issuer
-          dfx deploy create dummy_relying_party
+          dfx deploy dummy_issuer
+          dfx deploy dummy_relying_party
       - name: Prepare environment variables
         working-directory: dummy-e2e
         run: ./create-env-vars.sh
