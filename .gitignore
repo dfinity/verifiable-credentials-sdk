@@ -19,3 +19,6 @@ canister_ids.json
 # will have compiled files and executables
 debug/
 target/
+
+# Testing binaries
+pocket-ic

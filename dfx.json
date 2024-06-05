@@ -9,6 +9,13 @@
       "wasm": "./dummy-relying-party/dummy_relying_party.wasm.gz",
       "build": "./dummy-relying-party/build.sh",
       "shrink": false
+    },
+    "dummy_issuer": {
+      "type": "custom",
+      "candid": "./dummy-issuer/dummy_issuer.did",
+      "wasm": "./dummy-issuer/dummy_issuer.wasm.gz",
+      "build": "./dummy-issuer/build.sh",
+      "shrink": false
     }
   }
 }
