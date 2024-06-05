@@ -1,10 +1,9 @@
-use asset_util::CertifiedAssets;
 use candid::{candid_method, Principal};
 use canister_sig_util::signature_map::{SignatureMap, LABEL_SIG};
 use canister_sig_util::CanisterSigPublicKey;
 use ic_cdk::api::{set_certified_data, time};
 use ic_cdk_macros::{query, update};
-use ic_certification::{fork_hash, labeled_hash, Hash};
+use ic_certification::{labeled_hash, Hash};
 use identity_core::convert::FromJson;
 use identity_credential::credential::Subject;
 use identity_credential::error::Error as JwtVcError;
@@ -37,8 +36,6 @@ thread_local! {
     /// Non-stable structures
     // Canister signatures
     static SIGNATURES : RefCell<SignatureMap> = RefCell::new(SignatureMap::default());
-    // Assets for the management app
-    static ASSETS: RefCell<CertifiedAssets> = RefCell::new(CertifiedAssets::default());
 }
 
 lazy_static! {
@@ -55,15 +52,7 @@ fn hash_bytes(value: impl AsRef<[u8]>) -> Hash {
 
 fn update_root_hash() {
     SIGNATURES.with_borrow(|sigs| {
-        ASSETS.with_borrow(|assets| {
-            let prefixed_root_hash = fork_hash(
-                // NB: Labels added in lexicographic order.
-                &assets.root_hash(),
-                &labeled_hash(LABEL_SIG, &sigs.root_hash()),
-            );
-
-            set_certified_data(&prefixed_root_hash[..]);
-        })
+        set_certified_data(&labeled_hash(LABEL_SIG, &sigs.root_hash()));
     })
 }
 
@@ -212,12 +201,7 @@ fn get_credential(req: GetCredentialRequest) -> Result<IssuedCredentialData, Iss
     let message_hash = vc_signing_input_hash(&signing_input);
     let sig_result = SIGNATURES.with(|sigs| {
         let sig_map = sigs.borrow();
-        let certified_assets_root_hash = ASSETS.with_borrow(|assets| assets.root_hash());
-        sig_map.get_signature_as_cbor(
-            &CANISTER_SIG_SEED,
-            message_hash,
-            Some(certified_assets_root_hash),
-        )
+        sig_map.get_signature_as_cbor(&CANISTER_SIG_SEED, message_hash, None)
     });
     let sig = match sig_result {
         Ok(sig) => sig,
