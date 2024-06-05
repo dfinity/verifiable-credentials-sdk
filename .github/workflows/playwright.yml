@@ -23,7 +23,7 @@ jobs:
         uses: dfinity/setup-dfx@main
       - name: Start local replica
         run: dfx start --background
-      - name: Deploy canistres
+      - name: Deploy canisters
         # We create the canisters first to have the ids when we build the frontend env vars
         run: |
           dfx deploy internet_identity
