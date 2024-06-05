@@ -16,6 +16,8 @@ jobs:
       - name: Install dependencies
         working-directory: dummy-e2e
         run: npm ci
+      - name: Install ic-wasm
+        run: cargo install ic-wasm --version 0.3.5
       - name: Install Playwright Browsers
         working-directory: dummy-e2e
         run: npx playwright install --with-deps
