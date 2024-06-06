@@ -1,6 +1,6 @@
 # SDK For Verifiable Credentials in Internet Computer
 
-This repository contains a set of libraries to manage the verifiable credentials from both the perspective of the Issuer and the Relyping Party.
+This repository contains a set of libraries to manage verifiable credentials whether you are an issuer or a relying party. 
 
 ## Libraries
 
