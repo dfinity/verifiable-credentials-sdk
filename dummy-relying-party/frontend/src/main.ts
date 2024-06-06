@@ -1,3 +1,4 @@
+import "./style.css";
 import { AuthClient } from "@dfinity/auth-client";
 import { decodeJwt } from "jose";
 import {
@@ -7,35 +8,40 @@ import {
 import { Principal } from "@dfinity/principal";
 
 const vcContainer = document.getElementById("vc-container");
-const loggedInContainer = document.getElementById("logged-in");
-const hideLoggedIn = () => {
-  loggedInContainer?.classList.add("hidden");
-  vcContainer?.classList.add("hidden");
-};
+const logInForm = document.getElementById("log-in-form");
+const requestCredentialForm = document.getElementById(
+  "request-credential-form"
+);
+const requestCredentialButton = document.getElementById(
+  "request-credential-button"
+);
 
 const showLoggedIn = () => {
-  loggedInContainer?.classList.remove("hidden");
+  logInForm?.classList.remove("hidden");
 };
 
 const showVcContainer = () => {
   vcContainer?.classList.remove("hidden");
+  vcContainer?.classList.remove("sm:hidden");
+  vcContainer?.classList.add("sm:grid");
 };
 
-const hideNotLoggedIn = () => {
-  document.getElementById("not-logged-in")?.classList.add("hidden");
+const showCredentials = () => {
+  logInForm?.classList.add("hidden");
+  requestCredentialForm?.classList.remove("hidden");
+  requestCredentialForm?.classList.add("grid");
 };
+
+// showCredentials();
+showVcContainer();
 
 let iiURL: string | null = null;
 
-hideLoggedIn();
-
-const loginButton = document.getElementById("login");
-const requesetCredentialForm =
-  (document.getElementById("request-credential") as HTMLFormElement) || null;
 const userPrincipal = document.getElementById("user-principal");
-const addArgumentButton = document.getElementById("add-argument");
+const addArgumentForm = document.getElementById("add-argument-form");
 const authClient = await AuthClient.create();
-loginButton?.addEventListener("click", async () => {
+logInForm?.addEventListener("submit", async (evt) => {
+  evt.preventDefault();
   const iiURLElement = document.getElementById(
     "ii-url"
   ) as HTMLInputElement | null;
@@ -45,7 +51,7 @@ loginButton?.addEventListener("click", async () => {
       identityProvider: iiURL,
       onSuccess: () => {
         showLoggedIn();
-        hideNotLoggedIn();
+        showCredentials();
         if (userPrincipal) {
           userPrincipal.innerText = `User principal: ${authClient
             .getIdentity()
@@ -62,52 +68,53 @@ loginButton?.addEventListener("click", async () => {
   }
 });
 
-const credentialArguments: Record<string, string | number> = {};
+type CredentialSpec = {
+  credentialType: string;
+  arguments: Record<string, string | number>;
+};
+const credentialSpec: CredentialSpec = {
+  credentialType: "",
+  arguments: {},
+};
 
-addArgumentButton?.addEventListener("click", () => {
-  const argumentsContainer = document.getElementById("arguments");
-  if (argumentsContainer) {
-    const key = document.getElementById("argument-key") as HTMLInputElement;
-    const value = document.getElementById("argument-value") as HTMLInputElement;
-    const argType = document.getElementById(
-      "argument-type"
-    ) as HTMLSelectElement;
-    if (key && value && argType) {
-      credentialArguments[key.value] =
-        argType.value === "number" ? Number(value.value) : value.value;
-      key.value = "";
-      value.value = "";
-    }
-    argumentsContainer.innerHTML = "";
-    const argumentTemplate = document.getElementById("arguments-template");
-    Object.entries(credentialArguments).forEach(([key, value]) => {
-      if (argumentTemplate) {
-        const newArgument = argumentTemplate.cloneNode(true) as HTMLElement;
-        newArgument.id = "";
-        const keyElement = newArgument.querySelector(".key");
-        const valueElement = newArgument.querySelector(".value");
-        const typeElement = newArgument.querySelector(".type");
-        if (keyElement && valueElement && typeElement) {
-          keyElement.innerHTML = `${key}: `;
-          valueElement.innerHTML = `${String(value)} - `;
-          typeElement.innerHTML = `type: ${typeof value}`;
-        }
-        newArgument.classList.remove("hidden");
-        argumentsContainer.appendChild(newArgument);
-      }
-    });
+const renderCredentialSpec = () => {
+  const credentialSpecElement = document.getElementById("credential-spec");
+  if (credentialSpecElement) {
+    credentialSpecElement.innerHTML = JSON.stringify(credentialSpec, null, 2);
+  }
+};
+
+renderCredentialSpec();
+
+document
+  .getElementById("credential-type")
+  ?.addEventListener("change", (event) => {
+    const credentialType = (event.target as HTMLSelectElement).value;
+    credentialSpec.credentialType = credentialType;
+    renderCredentialSpec();
+  });
+
+addArgumentForm?.addEventListener("submit", (evt) => {
+  evt.preventDefault();
+  const key = document.getElementById("argument-key") as HTMLInputElement;
+  const value = document.getElementById("argument-value") as HTMLInputElement;
+  const argType = document.getElementById("argument-type") as HTMLSelectElement;
+  if (key && value && argType) {
+    credentialSpec.arguments[key.value] =
+      argType.value === "number" ? Number(value.value) : value.value;
+    key.value = "";
+    value.value = "";
+    renderCredentialSpec();
   }
 });
 
-requesetCredentialForm?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const formData = new FormData(requesetCredentialForm);
-  const issuerUrl = formData.get("issuer-url") as string;
-  const credentialType = formData.get("credential-type") as string;
+requestCredentialButton?.addEventListener("click", async () => {
+  const issuerUrlElement = document.getElementById(
+    "issuer-url"
+  ) as HTMLInputElement;
   requestCredentials({
-    issuerUrl,
-    credentialType,
-    credentialArgs: credentialArguments,
+    issuerUrl: issuerUrlElement.value,
+    credentialSpec,
   });
 });
 
@@ -115,14 +122,12 @@ const requestCredentials = async ({
   issuerUrl,
   canisterId,
   derivationOrigin,
-  credentialType,
-  credentialArgs,
+  credentialSpec,
 }: {
   issuerUrl: string;
   canisterId?: Principal;
   derivationOrigin?: string;
-  credentialType: string;
-  credentialArgs: Record<string, string | number>;
+  credentialSpec: CredentialSpec;
 }) => {
   // We shouldn't happen because we don't show the form to request credentials
   // until the user is logged in.
@@ -137,6 +142,7 @@ const requestCredentials = async ({
       verifiablePresentation: VerifiablePresentationResponse
     ) => {
       showVcContainer();
+      console.log("in onSuccess", verifiablePresentation);
       const resultElement = document.getElementById("vc-result");
       const presentationElement = document.getElementById("vc-presentation");
       const aliasElement = document.getElementById("vc-alias");
@@ -165,7 +171,8 @@ const requestCredentials = async ({
         }
       }
     },
-    onError() {
+    onError(err?: string) {
+      console.log("Error obtaining credential", err);
       const resultElement = document.getElementById("vc-result");
       if (resultElement) {
         resultElement.innerText =
@@ -177,10 +184,7 @@ const requestCredentials = async ({
       canisterId: canisterId?.toText(),
     },
     credentialData: {
-      credentialSpec: {
-        credentialType,
-        arguments: credentialArgs,
-      },
+      credentialSpec,
       credentialSubject: principal,
     },
     identityProvider: iiURL,

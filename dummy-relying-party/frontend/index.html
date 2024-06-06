@@ -1,109 +1,277 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-gray-100">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dummy Relying Party</title>
   </head>
-  <body>
-    <h1>Dummy relying party</h1>
-    <div>
-      <div id="not-logged-in">
-        <input
-          type="text"
-          id="ii-url"
-          data-tid="ii-url-input"
-          placeholder="Enter Internet Identity URL"
-        />
-        <button id="login" data-tid="login-button">
-          Login with Internet Identity
-        </button>
-      </div>
-      <div id="logged-in">
-        <p id="user-principal" data-tid="user-principal"></p>
-        <form id="request-credential">
-          <div>
-            <label for="issuer-url">Issuer URL:</label>
-            <input
-              type="text"
-              id="issuer-url"
-              name="issuer-url"
-              data-tid="issuer-url-input"
-              placeholder="Enter the issuer url"
-            />
-          </div>
-          <div>
-            <label for="credential-type">Credential type:</label>
-            <input
-              type="text"
-              id="credential-type"
-              name="credential-type"
-              data-tid="credential-type-input"
-              placeholder="Enter the credential-type"
-            />
-          </div>
-          <div>
-            <p>Credential Arguments</p>
-            <div id="arguments-template" class="hidden">
-              <p>
-                <span class="key"></span><span class="value"></span
-                ><span class="type"></span>
-              </p>
-            </div>
-            <div id="arguments"></div>
-            <div>
-              <label for="alias">Key:</label>
-              <input
-                type="text"
-                id="argument-key"
-                data-tid="credential-argument-key-input"
-                placeholder="Enter the argument key"
-              />
-              <label for="alias">Value:</label>
-              <input
-                type="text"
-                id="argument-value"
-                data-tid="credential-argument-value-input"
-                placeholder="Enter the argument value"
-              />
-              <label for="alias">Type:</label>
-              <select id="argument-type">
-                <option value="string">String</option>
-                <option value="number">Number</option>
-              </select>
-              <button
-                type="button"
-                id="add-argument"
-                data-tid="add-argument-button"
+  <body class="h-full">
+    <div class="min-h-full">
+      <div class="py-10">
+        <main>
+          <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-xl">
+              <header class="mb-10">
+                <h1
+                  class="text-3xl font-bold leading-tight tracking-tight text-gray-900"
+                >
+                  Relying party
+                </h1>
+                <h3 class="text-l text-gray-700 mt-4">
+                  This is a relying party that can request credentials from any
+                  issuer.
+                </h3>
+                <h3 class="text-l text-gray-700 mt-1">
+                  You must provide all the data necessary to request the
+                  credential.
+                </h3>
+              </header>
+              <div
+                class="space-y-8 bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2 px-4 py-6 sm:p-8"
               >
-                Add
-              </button>
+                <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                  <div class="col-span-full">
+                    <form id="log-in-form">
+                      <label
+                        for="ii-url"
+                        class="block text-sm font-medium leading-6 text-gray-900"
+                        >Internet Identity URL</label
+                      >
+                      <div class="mt-2">
+                        <input
+                          type="text"
+                          id="ii-url"
+                          class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                          placeholder="Enter II Url"
+                          aria-describedby="email-description"
+                        />
+                      </div>
+                      <p
+                        class="mt-2 text-sm text-gray-500"
+                        id="email-description"
+                      >
+                        Starting by logging in with the same Internet Identity
+                        used by the issuer.
+                      </p>
+                      <div class="mt-4">
+                        <button
+                          type="submit"
+                          class="rounded-md w-full bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                        >
+                          Login
+                        </button>
+                      </div>
+                    </form>
+                    <p id="user-principal" data-tid="user-principal"></p>
+                  </div>
+                </div>
+                <div
+                  class="grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 hidden"
+                  id="request-credential-form"
+                >
+                  <div class="col-span-full">
+                    <label
+                      for="email"
+                      class="block text-sm font-medium leading-6 text-gray-900"
+                      >Issuer URL</label
+                    >
+                    <div class="mt-2">
+                      <input
+                        type="text"
+                        id="issuer-url"
+                        name="issuer-url"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        placeholder="Enter Issuer Url"
+                        aria-describedby="email-description"
+                      />
+                    </div>
+                    <p
+                      class="mt-2 text-sm text-gray-500"
+                      id="email-description"
+                    >
+                      Enter origin of the issuer to request the credential.
+                    </p>
+                  </div>
+
+                  <div class="col-span-full">
+                    <label
+                      for="email"
+                      class="block text-sm font-medium leading-6 text-gray-900"
+                      >Credential Type</label
+                    >
+                    <div class="mt-2">
+                      <input
+                        type="text"
+                        id="credential-type"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        placeholder="Enter Credential Type"
+                        aria-describedby="email-description"
+                      />
+                    </div>
+                    <p
+                      class="mt-2 text-sm text-gray-500"
+                      id="email-description"
+                    >
+                      Enter the credential type you'd like to request, eg:
+                      "VerifiedAge".
+                    </p>
+                  </div>
+
+                  <div class="col-span-full">
+                    <form id="add-argument-form">
+                      <label
+                        for="ii-url"
+                        class="block text-sm font-medium leading-6 text-gray-900"
+                        >Credential Arguments</label
+                      >
+                      <div class="mt-2">
+                        <span class="isolate flex rounded-md shadow-sm">
+                          <input
+                            type="text"
+                            id="argument-key"
+                            data-tid="credential-argument-key-input"
+                            class="block w-full border-0 rounded-l-md py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                            placeholder="Enter Argument Key"
+                            aria-describedby="key of the argument"
+                          />
+                          <input
+                            type="text"
+                            id="argument-value"
+                            data-tid="credential-argument-value-input"
+                            class="block w-full border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                            placeholder="Enter Argument Value"
+                            aria-describedby="value of the argument"
+                          />
+                          <label for="message-type" class="sr-only"
+                            >Select message type</label
+                          >
+                          <select
+                            id="argument-type"
+                            class="-ml-px w-full block rounded-l-none border-0 bg-white py-1.5 pl-3 pr-9 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                          >
+                            <option>String</option>
+                            <option>Number</option>
+                          </select>
+                          <button
+                            type="submit"
+                            id="add-argument"
+                            class="relative -ml-px inline-flex items-center rounded-r-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
+                          >
+                            Add
+                          </button>
+                        </span>
+                      </div>
+                      <p class="mt-3 text-sm leading-6 text-gray-500">
+                        Enter the arguments of the credential, eg: "minAge:
+                        18".<br />
+                        The arguments are added to the credential spec below.
+                      </p>
+                    </form>
+                  </div>
+
+                  <div class="col-span-full">
+                    <p class="text-sm font-medium leading-6 text-gray-900">
+                      Credential Spec
+                    </p>
+                    <div class="mt-2 bg-gray-900 text-white p-4 rounded-md">
+                      <div>
+                        <pre
+                          class="text-gray-300"
+                        ><code id="credential-spec"></code></pre>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-span-full flex items-center justify-center">
+                    <button
+                      id="request-credential-button"
+                      type="button"
+                      class="rounded-md w-full bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                    >
+                      Request Credential
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="hidden sm:hidden mt-6 divide-y divide-gray-200 overflow-hidden rounded-lg bg-gray-200 shadow sm:grid-cols-2 sm:gap-px sm:divide-y-0"
+              id="vc-container"
+            >
+              <div
+                class="rounded-tl-lg sm:rounded-tr-none group relative bg-white p-6 flex flex-col gap-4"
+              >
+                <h3
+                  class="text-l font-bold leading-tight tracking-tight text-gray-900"
+                >
+                  JWT Credential Presentation
+                </h3>
+                <div class="bg-gray-900 text-white p-4 rounded-md">
+                  <div>
+                    <pre
+                      id="code"
+                      class="text-gray-300"
+                    ><code id="vc-result"></code></pre>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sm:rounded-tr-lg group relative bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 flex flex-col gap-4"
+              >
+                <h3
+                  class="text-l font-bold leading-tight tracking-tight text-gray-900"
+                >
+                  Decoded Credential Presentation
+                </h3>
+                <div class="bg-gray-900 text-white p-4 rounded-md">
+                  <div>
+                    <pre
+                      id="code"
+                      class="text-gray-300"
+                    ><code id="vc-presentation"></code></pre>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sm:rounded-bl-lg rounded-br-lg group relative bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 flex flex-col gap-4"
+              >
+                <h3
+                  class="text-l font-bold leading-tight tracking-tight text-gray-900"
+                >
+                  Decoded Alias Credential
+                </h3>
+                <div class="bg-gray-900 text-white p-4 rounded-md">
+                  <div>
+                    <pre
+                      id="code"
+                      class="text-gray-300"
+                    ><code id="vc-alias"></code></pre>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sm:rounded-tr-lg rounded-br-lg group relative bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 flex flex-col gap-4"
+              >
+                <h3
+                  class="text-l font-bold leading-tight tracking-tight text-gray-900"
+                >
+                  Decoded Requested Credential
+                </h3>
+                <div class="bg-gray-900 text-white p-4 rounded-md">
+                  <div>
+                    <pre
+                      id="code"
+                      class="text-gray-300"
+                    ><code id="vc-credential"></code></pre>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div>
-            <button type="submit" data-tid="request-credential-button">
-              Request Credential
-            </button>
-          </div>
-        </form>
-        <div id="vc-container">
-          <h4>Encoded Credential</h4>
-          <pre id="vc-result" data-tid="vc-result">-</pre>
-          <h4>Decoded Presentation</h4>
-          <pre id="vc-presentation">-</pre>
-          <h4>Decoded Credentials</h4>
-          <p>Alias credential</p>
-          <pre id="vc-alias">-</pre>
-          <p>Requested credential</p>
-          <pre id="vc-credential">-</pre>
-        </div>
+        </main>
       </div>
     </div>
-    <style>
-      .hidden {
-        display: none;
-      }
-    </style>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
