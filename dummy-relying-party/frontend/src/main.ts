@@ -186,9 +186,9 @@ const renderDecodedCredentialPresentation = (jwt: string) => {
 const renderCredential = (jwt: string) => {
   showVcContainer();
   const resultElement = document.getElementById("vc-result");
-  if (resultElement) {
-    window.scrollTo({ top: resultElement.offsetTop, behavior: "smooth" });
+  if (resultElement && vcContainer) {
     resultElement.innerText = jwt;
+    window.scrollTo({ top: vcContainer.offsetTop, behavior: "smooth" });
   }
   document
     .getElementById("decode-credential-presentation-button")
