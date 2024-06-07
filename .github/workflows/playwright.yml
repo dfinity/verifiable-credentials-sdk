@@ -1,9 +1,9 @@
 name: Playwright Tests
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 jobs:
   test:
     timeout-minutes: 60
@@ -26,11 +26,7 @@ jobs:
       - name: Start local replica
         run: dfx start --background
       - name: Deploy canisters
-        # We create the canisters first to have the ids when we build the frontend env vars
-        run: |
-          dfx deploy internet_identity
-          dfx deploy dummy_issuer
-          dfx deploy dummy_relying_party
+        run: dfx deploy
       - name: Prepare environment variables
         working-directory: dummy-e2e
         run: ./create-env-vars.sh
