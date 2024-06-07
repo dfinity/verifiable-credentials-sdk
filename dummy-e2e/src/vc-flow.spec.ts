@@ -28,7 +28,7 @@ test("user gets credential from dummy issuer within the dummy relying party", as
 
   await page.getByTestId("credential-type-input").fill("Test");
 
-  await expect(await page.getByTestId("vc-result").textContent()).toBe("-");
+  await expect(await page.getByTestId("vc-result").isVisible()).toBe(false);
 
   // Request credentials
   const iiPagePromise = context.waitForEvent("page");
@@ -40,5 +40,5 @@ test("user gets credential from dummy issuer within the dummy relying party", as
   await iiPage.waitForEvent("close");
   await expect(iiPage.isClosed()).toBe(true);
 
-  await expect(await page.getByTestId("vc-result").textContent()).not.toBe("-");
+  await expect(await page.getByTestId("vc-result").isVisible()).toBe(true);
 });

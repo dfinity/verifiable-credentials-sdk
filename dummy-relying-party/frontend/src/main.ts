@@ -1,3 +1,4 @@
+import "./style.css";
 import { AuthClient } from "@dfinity/auth-client";
 import { decodeJwt } from "jose";
 import {
@@ -7,35 +8,37 @@ import {
 import { Principal } from "@dfinity/principal";
 
 const vcContainer = document.getElementById("vc-container");
-const loggedInContainer = document.getElementById("logged-in");
-const hideLoggedIn = () => {
-  loggedInContainer?.classList.add("hidden");
-  vcContainer?.classList.add("hidden");
-};
+const logInForm = document.getElementById("log-in-form");
+const requestCredentialForm = document.getElementById(
+  "request-credential-form"
+);
+const requestCredentialButton = document.getElementById(
+  "request-credential-button"
+);
 
 const showLoggedIn = () => {
-  loggedInContainer?.classList.remove("hidden");
+  logInForm?.classList.remove("hidden");
 };
 
 const showVcContainer = () => {
   vcContainer?.classList.remove("hidden");
+  vcContainer?.classList.remove("sm:hidden");
+  vcContainer?.classList.add("sm:grid");
 };
 
-const hideNotLoggedIn = () => {
-  document.getElementById("not-logged-in")?.classList.add("hidden");
+const showCredentials = () => {
+  logInForm?.classList.add("hidden");
+  requestCredentialForm?.classList.remove("hidden");
+  requestCredentialForm?.classList.add("grid");
 };
 
 let iiURL: string | null = null;
 
-hideLoggedIn();
-
-const loginButton = document.getElementById("login");
-const requesetCredentialForm =
-  (document.getElementById("request-credential") as HTMLFormElement) || null;
 const userPrincipal = document.getElementById("user-principal");
-const addArgumentButton = document.getElementById("add-argument");
+const addArgumentForm = document.getElementById("add-argument-form");
 const authClient = await AuthClient.create();
-loginButton?.addEventListener("click", async () => {
+logInForm?.addEventListener("submit", async (evt) => {
+  evt.preventDefault();
   const iiURLElement = document.getElementById(
     "ii-url"
   ) as HTMLInputElement | null;
@@ -45,7 +48,7 @@ loginButton?.addEventListener("click", async () => {
       identityProvider: iiURL,
       onSuccess: () => {
         showLoggedIn();
-        hideNotLoggedIn();
+        showCredentials();
         if (userPrincipal) {
           userPrincipal.innerText = `User principal: ${authClient
             .getIdentity()
@@ -62,67 +65,154 @@ loginButton?.addEventListener("click", async () => {
   }
 });
 
-const credentialArguments: Record<string, string | number> = {};
+type CredentialSpec = {
+  credentialType: string;
+  arguments: Record<string, string | number>;
+};
+const credentialSpec: CredentialSpec = {
+  credentialType: "",
+  arguments: {},
+};
 
-addArgumentButton?.addEventListener("click", () => {
-  const argumentsContainer = document.getElementById("arguments");
-  if (argumentsContainer) {
-    const key = document.getElementById("argument-key") as HTMLInputElement;
-    const value = document.getElementById("argument-value") as HTMLInputElement;
-    const argType = document.getElementById(
-      "argument-type"
-    ) as HTMLSelectElement;
-    if (key && value && argType) {
-      credentialArguments[key.value] =
-        argType.value === "number" ? Number(value.value) : value.value;
-      key.value = "";
-      value.value = "";
-    }
-    argumentsContainer.innerHTML = "";
-    const argumentTemplate = document.getElementById("arguments-template");
-    Object.entries(credentialArguments).forEach(([key, value]) => {
-      if (argumentTemplate) {
-        const newArgument = argumentTemplate.cloneNode(true) as HTMLElement;
-        newArgument.id = "";
-        const keyElement = newArgument.querySelector(".key");
-        const valueElement = newArgument.querySelector(".value");
-        const typeElement = newArgument.querySelector(".type");
-        if (keyElement && valueElement && typeElement) {
-          keyElement.innerHTML = `${key}: `;
-          valueElement.innerHTML = `${String(value)} - `;
-          typeElement.innerHTML = `type: ${typeof value}`;
-        }
-        newArgument.classList.remove("hidden");
-        argumentsContainer.appendChild(newArgument);
-      }
-    });
+const renderCredentialSpec = () => {
+  const credentialSpecElement = document.getElementById("credential-spec");
+  if (credentialSpecElement) {
+    credentialSpecElement.innerHTML = JSON.stringify(credentialSpec, null, 2);
+  }
+};
+
+renderCredentialSpec();
+
+document
+  .getElementById("credential-type")
+  ?.addEventListener("change", (event) => {
+    const credentialType = (event.target as HTMLSelectElement).value;
+    credentialSpec.credentialType = credentialType;
+    renderCredentialSpec();
+  });
+
+addArgumentForm?.addEventListener("submit", (evt) => {
+  evt.preventDefault();
+  const key = document.getElementById("argument-key") as HTMLInputElement;
+  const value = document.getElementById("argument-value") as HTMLInputElement;
+  const argType = document.getElementById("argument-type") as HTMLSelectElement;
+  if (key && value && argType) {
+    credentialSpec.arguments[key.value] =
+      argType.value === "number" ? Number(value.value) : value.value;
+    key.value = "";
+    value.value = "";
+    renderCredentialSpec();
   }
 });
 
-requesetCredentialForm?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const formData = new FormData(requesetCredentialForm);
-  const issuerUrl = formData.get("issuer-url") as string;
-  const credentialType = formData.get("credential-type") as string;
+requestCredentialButton?.addEventListener("click", async () => {
+  const issuerUrlElement = document.getElementById(
+    "issuer-url"
+  ) as HTMLInputElement;
   requestCredentials({
-    issuerUrl,
-    credentialType,
-    credentialArgs: credentialArguments,
+    issuerUrl: issuerUrlElement.value,
+    credentialSpec,
   });
 });
+
+const renderDecodedCredential = (jwt: string) => {
+  const container = document.getElementById("vc-credential-container");
+  const element = document.getElementById("vc-credential");
+  if (container && element) {
+    container.classList.remove("hidden");
+    container.classList.add("flex");
+    element.innerText = JSON.stringify(decodeJwt(jwt), null, 2);
+    window.scrollTo({ top: container.offsetTop, behavior: "smooth" });
+  }
+};
+
+const renderDecodedAlias = (jwt: string) => {
+  const aliasContainer = document.getElementById("vc-alias-container");
+  const aliasElement = document.getElementById("vc-alias");
+  if (aliasContainer && aliasElement) {
+    aliasContainer.classList.remove("hidden");
+    aliasContainer.classList.add("flex");
+    aliasElement.innerText = JSON.stringify(decodeJwt(jwt), null, 2);
+    window.scrollTo({ top: aliasContainer.offsetTop, behavior: "smooth" });
+  }
+};
+
+const renderDecodedCredentialPresentation = (jwt: string) => {
+  const presentationElement = document.getElementById("vc-presentation");
+  const presentationContainer = document.getElementById(
+    "vc-presentation-container"
+  );
+  if (presentationElement && presentationContainer) {
+    const decodedPresentation = decodeJwt(jwt) as any;
+    presentationContainer.classList.remove("hidden");
+    presentationContainer.classList.add("flex");
+    presentationElement.innerText = JSON.stringify(
+      decodedPresentation,
+      null,
+      2
+    );
+    window.scrollTo({
+      top: presentationContainer.offsetTop,
+      behavior: "smooth",
+    });
+
+    const [alias, credential] = decodedPresentation.vp.verifiableCredential;
+    document
+      .getElementById("decode-alias-button")
+      ?.addEventListener("click", () => {
+        renderDecodedAlias(alias);
+      });
+
+    document
+      .getElementById("decode-credential-button")
+      ?.addEventListener("click", () => {
+        renderDecodedCredential(credential);
+      });
+
+    document
+      .getElementById("copy-alias-button")
+      ?.addEventListener("click", () => {
+        navigator.clipboard.writeText(alias);
+      });
+
+    document
+      .getElementById("copy-credential-button")
+      ?.addEventListener("click", () => {
+        navigator.clipboard.writeText(credential);
+      });
+  }
+};
+
+const renderCredential = (jwt: string) => {
+  showVcContainer();
+  const resultElement = document.getElementById("vc-result");
+  if (resultElement && vcContainer) {
+    resultElement.innerText = jwt;
+    window.scrollTo({ top: vcContainer.offsetTop, behavior: "smooth" });
+  }
+  document
+    .getElementById("decode-credential-presentation-button")
+    ?.addEventListener("click", () => {
+      renderDecodedCredentialPresentation(jwt);
+    });
+
+  document
+    .getElementById("copy-credential-presentation-button")
+    ?.addEventListener("click", () => {
+      navigator.clipboard.writeText(jwt);
+    });
+};
 
 const requestCredentials = async ({
   issuerUrl,
   canisterId,
   derivationOrigin,
-  credentialType,
-  credentialArgs,
+  credentialSpec,
 }: {
   issuerUrl: string;
   canisterId?: Principal;
   derivationOrigin?: string;
-  credentialType: string;
-  credentialArgs: Record<string, string | number>;
+  credentialSpec: CredentialSpec;
 }) => {
   // We shouldn't happen because we don't show the form to request credentials
   // until the user is logged in.
@@ -136,36 +226,19 @@ const requestCredentials = async ({
     onSuccess: async (
       verifiablePresentation: VerifiablePresentationResponse
     ) => {
-      showVcContainer();
+      console.log("in onSuccess", verifiablePresentation);
       const resultElement = document.getElementById("vc-result");
-      const presentationElement = document.getElementById("vc-presentation");
-      const aliasElement = document.getElementById("vc-alias");
-      const credentialElement = document.getElementById("vc-credential");
       if ("Ok" in verifiablePresentation) {
-        if (resultElement) {
-          resultElement.innerText = verifiablePresentation.Ok;
-        }
-        const ver = decodeJwt(verifiablePresentation.Ok) as any;
-        if (presentationElement) {
-          presentationElement.innerText = JSON.stringify(ver, null, 2);
-        }
-        const creds = ver.vp.verifiableCredential;
-        const [alias, credential] = creds.map((cred: string) =>
-          JSON.stringify(decodeJwt(cred), null, 2)
-        );
-        if (aliasElement) {
-          aliasElement.innerText = alias;
-        }
-        if (credentialElement) {
-          credentialElement.innerText = credential;
-        }
+        renderCredential(verifiablePresentation.Ok);
       } else {
+        showVcContainer();
         if (resultElement) {
           resultElement.innerText = "Credential not obtained";
         }
       }
     },
-    onError() {
+    onError(err?: string) {
+      console.log("Error obtaining credential", err);
       const resultElement = document.getElementById("vc-result");
       if (resultElement) {
         resultElement.innerText =
@@ -177,13 +250,10 @@ const requestCredentials = async ({
       canisterId: canisterId?.toText(),
     },
     credentialData: {
-      credentialSpec: {
-        credentialType,
-        arguments: credentialArgs,
-      },
+      credentialSpec,
       credentialSubject: principal,
     },
-    identityProvider: iiURL,
+    identityProvider: new URL(iiURL).origin,
     derivationOrigin,
   });
 };
