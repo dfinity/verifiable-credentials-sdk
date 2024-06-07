@@ -12,12 +12,15 @@
         <input
           type="text"
           id="ii-url"
+          data-tid="ii-url-input"
           placeholder="Enter Internet Identity URL"
         />
-        <button id="login">Login with Internet Identity</button>
+        <button id="login" data-tid="login-button">
+          Login with Internet Identity
+        </button>
       </div>
       <div id="logged-in">
-        <p id="user-principal"></p>
+        <p id="user-principal" data-tid="user-principal"></p>
         <form id="request-credential">
           <div>
             <label for="issuer-url">Issuer URL:</label>
@@ -25,6 +28,7 @@
               type="text"
               id="issuer-url"
               name="issuer-url"
+              data-tid="issuer-url-input"
               placeholder="Enter the issuer url"
             />
           </div>
@@ -34,6 +38,7 @@
               type="text"
               id="credential-type"
               name="credential-type"
+              data-tid="credential-type-input"
               placeholder="Enter the credential-type"
             />
           </div>
@@ -51,12 +56,14 @@
               <input
                 type="text"
                 id="argument-key"
+                data-tid="credential-argument-key-input"
                 placeholder="Enter the argument key"
               />
               <label for="alias">Value:</label>
               <input
                 type="text"
                 id="argument-value"
+                data-tid="credential-argument-value-input"
                 placeholder="Enter the argument value"
               />
               <label for="alias">Type:</label>
@@ -64,16 +71,24 @@
                 <option value="string">String</option>
                 <option value="number">Number</option>
               </select>
-              <button type="button" id="add-argument">Add</button>
+              <button
+                type="button"
+                id="add-argument"
+                data-tid="add-argument-button"
+              >
+                Add
+              </button>
             </div>
           </div>
           <div>
-            <button type="submit">Request Credential</button>
+            <button type="submit" data-tid="request-credential-button">
+              Request Credential
+            </button>
           </div>
         </form>
         <div id="vc-container">
           <h4>Encoded Credential</h4>
-          <pre id="vc-result">-</pre>
+          <pre id="vc-result" data-tid="vc-result">-</pre>
           <h4>Decoded Presentation</h4>
           <pre id="vc-presentation">-</pre>
           <h4>Decoded Credentials</h4>
