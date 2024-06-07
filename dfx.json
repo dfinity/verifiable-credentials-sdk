@@ -20,11 +20,7 @@
     "internet_identity": {
       "type": "custom",
       "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2024-04-05/internet_identity_dev.wasm.gz",
-      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-04-05/internet_identity.did",
-      "url": {
-        "mainnet": "https://identity.internetcomputer.org/",
-        "app": "https://identity.internetcomputer.org/"
-      }
+      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-04-05/internet_identity.did"
     }
   }
 }
