@@ -81,6 +81,6 @@ List of properties expected in the parameter when calling the function:
 - `onError`: Function that will be called when the flow failes due to a technical error. Also when the user interrupts the flow.
 - `issuerData`: Object with the `origin` and `canisterId` of the issuer.
 - `credentialData`: Object with the subbject and the credential requested.
-- `identityProvider`: URL of the Identity Provider. Ex: `"https://identity.ic0.app/"`.
+- `identityProvider`: URL of the Identity Provider. Ex: `new URL("https://identity.ic0.app/")`.
 - `derivationOrigin`: Indicates an origin that should be used for principal derivation. It's the same value as the one used when logging in. [More info](https://internetcomputer.org/docs/current/references/ii-spec/#alternative-frontend-origins).
 - `windowOpenerFeatures` The flow will open a new window or tab. Pass here a configuration string to customize it.

@@ -155,7 +155,7 @@ export type RequestVerifiablePresentationParams = {
   issuerData: IssuerData;
   windowOpenerFeatures?: string;
   derivationOrigin?: string;
-  identityProvider: string;
+  identityProvider: URL;
 };
 
 /**
@@ -194,11 +194,22 @@ export const requestVerifiablePresentation = ({
   identityProvider,
 }: RequestVerifiablePresentationParams): void => {
   const handleFlowFactory = (currentFlowId: FlowId) => (evnt: MessageEvent) => {
+    // We convert the origin to URL type to avoid problems with trailing slashes
+    // when comparing it with the identityProvider.
+    let evntOriginUrl: URL | undefined;
+    try {
+      evntOriginUrl = new URL(evnt.origin);
+    } catch (err: unknown) {
+      console.warn(
+        `WARNING: expected origin to be URL, got '${evnt.origin} instead' (ignoring)`,
+      );
+      return;
+    }
     // The handler is listening to all window messages.
     // For example, a browser extension could send messages that we want to ignore.
-    if (evnt.origin !== identityProvider) {
+    if (evntOriginUrl?.origin !== identityProvider.origin) {
       console.warn(
-        `WARNING: expected origin '${identityProvider}', got '${evnt.origin}' (ignoring)`,
+        `WARNING: expected origin '${identityProvider}', got '${evntOriginUrl.origin}' (ignoring)`,
       );
       return;
     }
@@ -219,7 +230,7 @@ export const requestVerifiablePresentation = ({
         credentialData,
         nextFlowId: currentFlowId,
       });
-      evnt.source?.postMessage(request, { targetOrigin: evnt.origin });
+      evnt.source?.postMessage(request, { targetOrigin: evntOriginUrl.origin });
       currentFlows.set(nextFlowId, "ongoing");
       return;
     }

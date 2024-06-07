@@ -12,7 +12,7 @@ describe("Request Verifiable Credentials function", () => {
   const credentialSubject = Principal.fromText(
     "2vtpp-r6lcd-cbfas-qbabv-wxrv5-lsrkj-c4dtb-6ets3-srlqe-xpuzf-vqe",
   );
-  const identityProvider = "https://identity.ic0.app";
+  const identityProvider = new URL("https://identity.ic0.app");
   const issuerOrigin = "https://jqajs-xiaaa-aaaad-aab5q-cai.ic0.app";
   const derivationOrigin = "https://metaissuer.vc/";
   const issuerData = {
@@ -71,7 +71,7 @@ describe("Request Verifiable Credentials function", () => {
               resolve({ request, options });
             },
           } as Window,
-          origin: identityProvider,
+          origin: identityProvider.origin,
           data: {
             jsonrpc: "2.0",
             method: "vc-flow-ready",
@@ -87,7 +87,7 @@ describe("Request Verifiable Credentials function", () => {
         source: {
           postMessage: vi.fn(),
         } as unknown as Window,
-        origin: identityProvider,
+        origin: identityProvider.origin,
         data,
       }),
     );
@@ -101,6 +101,26 @@ describe("Request Verifiable Credentials function", () => {
       credentialData,
       issuerData,
       identityProvider,
+    });
+
+    const {
+      request: { id },
+    } = await startVcFlow();
+    mockMessageFromIdentityProvider(vcVerifiablePresentationMessageSuccess(id));
+
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onSuccess).toBeCalledWith({ Ok: credentialPresentationMock });
+    expect(window.open).toHaveBeenCalledTimes(1);
+  });
+
+  it("works even with different URLs for identityProvider but same origin", async () => {
+    const onSuccess = vi.fn();
+    requestVerifiablePresentation({
+      onSuccess,
+      onError: unreachableFn,
+      credentialData,
+      issuerData,
+      identityProvider: new URL("https://identity.ic0.app/vc-flow"),
     });
 
     const {
@@ -150,7 +170,7 @@ describe("Request Verifiable Credentials function", () => {
         derivationOrigin,
       },
     });
-    expect(options).toEqual({ targetOrigin: identityProvider });
+    expect(options).toEqual({ targetOrigin: identityProvider.origin });
   });
 
   it("is successful with multiple flow-ready messages", async () => {
@@ -367,22 +387,6 @@ describe("Request Verifiable Credentials function", () => {
     vi.advanceTimersByTime(DURATION_BEFORE_USER_CLOSES_WINDOW / 2);
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledWith(ERROR_USER_INTERRUPT);
-  });
-
-  it("calls onError if `identityProvider is not a valid URL`", async () => {
-    const onError = vi.fn();
-    requestVerifiablePresentation({
-      onSuccess: unreachableFn,
-      onError,
-      credentialData,
-      issuerData,
-      identityProvider: "invalid-url",
-    });
-
-    expect(onError).toHaveBeenCalledTimes(1);
-    expect(onError).toHaveBeenCalledWith(
-      "The parameter `identityProvider` must be a valid URL.",
-    );
   });
 
   it("calls onError if user closes identity provider window even before the flow starts", async () => {

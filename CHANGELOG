@@ -11,6 +11,7 @@ Changes in the upcoming versions.
 
 - Change the type of `CredentialData.credentialSubject` to `Principal`.
 - Change the type of `IssuerData.canisterId` to `Principal` and make it mandatory.
+- Change the type of `identityProvider` to `URL`.
 
 ## Non-breaking Changes
 
