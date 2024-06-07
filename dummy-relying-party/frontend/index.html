@@ -41,6 +41,7 @@
                         <input
                           type="text"
                           id="ii-url"
+                          data-tid="ii-url-input"
                           class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                           placeholder="Enter II Url"
                           aria-describedby="email-description"
@@ -56,6 +57,7 @@
                       <div class="mt-4">
                         <button
                           type="submit"
+                          data-tid="login-button"
                           class="rounded-md w-full bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                         >
                           Login
@@ -79,6 +81,7 @@
                       <input
                         type="text"
                         id="issuer-url"
+                        data-tid="issuer-url-input"
                         name="issuer-url"
                         class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                         placeholder="Enter Issuer Url"
@@ -103,6 +106,7 @@
                       <input
                         type="text"
                         id="credential-type"
+                        data-tid="credential-type-input"
                         class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                         placeholder="Enter Credential Type"
                         aria-describedby="email-description"
@@ -185,6 +189,7 @@
                   <div class="col-span-full flex items-center justify-center">
                     <button
                       id="request-credential-button"
+                      data-tid="request-credential-button"
                       type="button"
                       class="rounded-md w-full bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                     >
@@ -211,7 +216,7 @@
                   <pre
                     id="code"
                     class="text-gray-300"
-                  ><code id="vc-result" class="block overflow-hidden text-ellipsis"></code></pre>
+                  ><code id="vc-result" data-tid="vc-result" class="block overflow-hidden text-ellipsis"></code></pre>
                 </div>
                 <div>
                   <button
