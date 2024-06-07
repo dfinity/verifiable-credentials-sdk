@@ -187,6 +187,7 @@ const renderCredential = (jwt: string) => {
   showVcContainer();
   const resultElement = document.getElementById("vc-result");
   if (resultElement) {
+    window.scrollTo({ top: resultElement.offsetTop, behavior: "smooth" });
     resultElement.innerText = jwt;
   }
   document
