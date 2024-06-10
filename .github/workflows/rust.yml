@@ -1,0 +1,52 @@
+name: Rust
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [1.77.2]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          rustup update ${{ matrix.rust }} --no-self-update
+          rustup default ${{ matrix.rust }}
+          rustup component add rustfmt
+          rustup component add clippy
+
+      - name: Check Format
+        run: cargo fmt --all -- --check
+
+        # fails if lockfile is out of date
+        # https://users.rust-lang.org/t/check-if-the-cargo-lock-is-up-to-date-without-building-anything/91048/5
+      - name: Cargo Lockfile Check
+        run: cargo update --workspace --locked
+
+      - name: Install PocketIC
+        run: |
+          curl -sL -o pocket-ic.gz https://github.com/dfinity/pocketic/releases/download/4.0.0/pocket-ic-x86_64-linux.gz
+          gzip -d pocket-ic.gz
+          chmod +x pocket-ic
+          cargo add pocket-ic --dev
+          export POCKET_IC_BIN=$(pwd)/pocket-ic
+
+      - name: Build Wasm Dummy Issuer
+        working-directory: dummy-issuer
+        run: ./build.sh
+
+      # fails if lockfile is out of date
+      # https://users.rust-lang.org/t/check-if-the-cargo-lock-is-up-to-date-without-building-anything/91048/5
+      - name: Cargo tests
+        run: cargo test
