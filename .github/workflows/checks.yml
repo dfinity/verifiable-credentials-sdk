@@ -1,4 +1,4 @@
-name: CI Checks
+name: JS Library Checks
 
 on:
   pull_request:
