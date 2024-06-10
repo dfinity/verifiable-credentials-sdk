@@ -39,7 +39,7 @@ jobs:
           curl -sL -o pocket-ic.gz https://github.com/dfinity/pocketic/releases/download/4.0.0/pocket-ic-x86_64-linux.gz
           gzip -d pocket-ic.gz
           chmod +x pocket-ic
-          export POCKET_IC_BIN=$(pwd)/pocket-ic
+          echo "POCKET_IC_BIN=$(pwd)/pocket-ic" >> $GITHUB_ENV
 
       - name: Install ic-wasm
         run: cargo install ic-wasm --version 0.3.5
