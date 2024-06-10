@@ -50,5 +50,6 @@ jobs:
 
       # fails if lockfile is out of date
       # https://users.rust-lang.org/t/check-if-the-cargo-lock-is-up-to-date-without-building-anything/91048/5
+      # Run only dummy_issuer to avoid building dummy_relying_party
       - name: Cargo tests
-        run: cargo test
+        run: cargo test --package dummy_issuer
