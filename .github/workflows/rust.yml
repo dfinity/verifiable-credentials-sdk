@@ -1,4 +1,4 @@
-name: Rust
+name: Cargo Tests
 
 on:
   push:
@@ -12,17 +12,11 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust: [1.77.2]
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         run: |
-          rustup update ${{ matrix.rust }} --no-self-update
-          rustup default ${{ matrix.rust }}
           rustup component add rustfmt
           rustup component add clippy
 
