@@ -3,6 +3,7 @@ import { signInWithNewUser } from "./utils/sigin-in-user.utils";
 
 const RP_URL = process.env.RP_URL ?? "";
 const ISSUER_URL = process.env.ISSUER_URL ?? "";
+const ISSUER_CANISTER_ID = process.env.ISSUER_CANISTER_ID ?? "";
 const II_URL = process.env.II_URL ?? "";
 
 test("user gets credential from dummy issuer within the dummy relying party", async ({
@@ -12,19 +13,18 @@ test("user gets credential from dummy issuer within the dummy relying party", as
   await page.goto(RP_URL);
   await expect(page).toHaveTitle("Dummy Relying Party");
 
-  await expect(await page.getByTestId("user-principal").isVisible()).toBe(
-    false
-  );
+  await expect(await page.getByTestId("login-data").isVisible()).toBe(false);
 
   // Log in with a new user
   await page.getByTestId("ii-url-input").fill(II_URL);
 
   await signInWithNewUser({ page, context });
 
-  await expect(await page.getByTestId("user-principal").isVisible()).toBe(true);
+  await expect(await page.getByTestId("login-data").isVisible()).toBe(true);
 
   // Fill credentials
   await page.getByTestId("issuer-url-input").fill(ISSUER_URL);
+  await page.getByTestId("issuer-canister-id-input").fill(ISSUER_CANISTER_ID);
 
   await page.getByTestId("credential-type-input").fill("Test");
 
