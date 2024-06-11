@@ -17,7 +17,7 @@ There is a deployed version in Internet Computer here: [https://l7rua-raaaa-aaaa
 
 You can test it against the dummy issuer deployed here: [https://qdiif-2iaaa-aaaap-ahjaq-cai.icp0.io/](https://qdiif-2iaaa-aaaap-ahjaq-cai.icp0.io/).
 
-You can use the staging Internet Identity instead of the mainnet one as well: [https://fgte5-ciaaa-aaaad-aaatq-cai.ic0.app/](https://fgte5-ciaaa-aaaad-aaatq-cai.ic0.app/).
+You can use the staging Internet Identity: [https://fgte5-ciaaa-aaaad-aaatq-cai.ic0.app/](https://fgte5-ciaaa-aaaad-aaatq-cai.ic0.app/).
 
 ## Upcoming
 
