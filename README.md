@@ -15,7 +15,7 @@ This repository contains a set of libraries to manage verifiable credentials whe
 
 There is a deployed version in Internet Computer here: [https://l7rua-raaaa-aaaap-ahh6a-cai.icp0.io/](https://l7rua-raaaa-aaaap-ahh6a-cai.icp0.io/).
 
-You can test it against the dummy issuer deployed here: [https://qdiif-2iaaa-aaaap-ahjaq-cai.icp0.io/](https://qdiif-2iaaa-aaaap-ahjaq-cai.icp0.io/).
+You can test it against the dummy issuer deployed in [canister id qdiif-2iaaa-aaaap-ahjaq-cai](https://dashboard.internetcomputer.org/canister/qdiif-2iaaa-aaaap-ahjaq-cai).
 
 You can use the staging Internet Identity: [https://fgte5-ciaaa-aaaad-aaatq-cai.ic0.app/](https://fgte5-ciaaa-aaaad-aaatq-cai.ic0.app/).
 
