@@ -172,7 +172,10 @@ fn test_consent_message() {
             consent_message,
             language: _lang,
         }) => {
-            assert_eq!(consent_message, "Consent message from dummy issuer: Test");
+            assert_eq!(
+                consent_message,
+                "# Credential Type\nTest\n## Arguments\nNone\n"
+            );
         }
         Err(_) => panic!("Failed to call consent_message"),
     }

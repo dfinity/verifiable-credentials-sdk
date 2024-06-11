@@ -27,53 +27,53 @@
                 </h3>
               </header>
               <div
-                class="space-y-8 bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2 px-4 py-6 sm:p-8"
+                class="flex flex-col gap-8 bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl px-4 py-6 sm:p-8"
               >
-                <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                  <div class="col-span-full">
-                    <form id="log-in-form">
-                      <label
-                        for="ii-url"
-                        class="block text-sm font-medium leading-6 text-gray-900"
-                        >Internet Identity URL</label
-                      >
-                      <div class="mt-2">
-                        <input
-                          type="text"
-                          id="ii-url"
-                          data-tid="ii-url-input"
-                          class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                          placeholder="Enter II Url"
-                          aria-describedby="email-description"
-                        />
-                      </div>
-                      <p
-                        class="mt-2 text-sm text-gray-500"
-                        id="email-description"
-                      >
-                        Starting by logging in with the same Internet Identity
-                        used by the issuer.
-                      </p>
-                      <div class="mt-4">
-                        <button
-                          type="submit"
-                          data-tid="login-button"
-                          class="rounded-md w-full bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                        >
-                          Login
-                        </button>
-                      </div>
-                    </form>
-                    <p id="user-principal" data-tid="user-principal"></p>
-                  </div>
-                </div>
-                <div
-                  class="grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 hidden"
-                  id="request-credential-form"
-                >
-                  <div class="col-span-full">
+                <div>
+                  <form id="log-in-form">
                     <label
-                      for="email"
+                      for="ii-url"
+                      class="block text-sm font-medium leading-6 text-gray-900"
+                      >Internet Identity URL</label
+                    >
+                    <div class="mt-2">
+                      <input
+                        type="text"
+                        id="ii-url"
+                        value="https://fgte5-ciaaa-aaaad-aaatq-cai.ic0.app"
+                        data-tid="ii-url-input"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        placeholder="Enter II Url"
+                        aria-describedby="email-description"
+                      />
+                    </div>
+                    <p
+                      class="mt-2 text-sm text-gray-500"
+                      id="email-description"
+                    >
+                      Starting by logging in with the same Internet Identity
+                      used by the issuer. Defaults points to a staging II.
+                    </p>
+                    <div class="mt-4">
+                      <button
+                        type="submit"
+                        data-tid="login-button"
+                        class="rounded-md w-full bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                      >
+                        Login
+                      </button>
+                    </div>
+                  </form>
+                  <div
+                    class="flex-col gap-2 hidden"
+                    id="login-data"
+                    data-tid="login-data"
+                  ></div>
+                </div>
+                <div class="flex-col gap-8 hidden" id="request-credential-form">
+                  <div>
+                    <label
+                      for="issuer-url"
                       class="block text-sm font-medium leading-6 text-gray-900"
                       >Issuer URL</label
                     >
@@ -81,6 +81,7 @@
                       <input
                         type="text"
                         id="issuer-url"
+                        value="https://qdiif-2iaaa-aaaap-ahjaq-cai.icp0.io"
                         data-tid="issuer-url-input"
                         name="issuer-url"
                         class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
@@ -93,10 +94,38 @@
                       id="email-description"
                     >
                       Enter origin of the issuer to request the credential.
+                      Default points to a dummy issuer.
                     </p>
                   </div>
 
-                  <div class="col-span-full">
+                  <div>
+                    <label
+                      for="issuer-canister-id"
+                      class="block text-sm font-medium leading-6 text-gray-900"
+                      >Issuer Canister Id</label
+                    >
+                    <div class="mt-2">
+                      <input
+                        type="text"
+                        id="issuer-canister-id"
+                        value="qdiif-2iaaa-aaaap-ahjaq-cai"
+                        data-tid="issuer-canister-id-input"
+                        name="issuer-canister-id"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        placeholder="Enter Canister Id"
+                        aria-describedby="email-description"
+                      />
+                    </div>
+                    <p
+                      class="mt-2 text-sm text-gray-500"
+                      id="email-description"
+                    >
+                      Enter origin of the issuer to request the credential.
+                      Default points to a dummy issuer.
+                    </p>
+                  </div>
+
+                  <div>
                     <label
                       for="email"
                       class="block text-sm font-medium leading-6 text-gray-900"
@@ -121,7 +150,7 @@
                     </p>
                   </div>
 
-                  <div class="col-span-full">
+                  <div>
                     <form id="add-argument-form">
                       <label
                         for="ii-url"
@@ -153,8 +182,8 @@
                             id="argument-type"
                             class="-ml-px w-full block rounded-l-none border-0 bg-white py-1.5 pl-3 pr-9 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                           >
-                            <option>String</option>
-                            <option>Number</option>
+                            <option value="string">String</option>
+                            <option value="number">Number</option>
                           </select>
                           <button
                             type="submit"
@@ -173,7 +202,7 @@
                     </form>
                   </div>
 
-                  <div class="col-span-full">
+                  <div>
                     <p class="text-sm font-medium leading-6 text-gray-900">
                       Credential Spec
                     </p>
@@ -186,7 +215,7 @@
                     </div>
                   </div>
 
-                  <div class="col-span-full flex items-center justify-center">
+                  <div class="flex flex-col items-stretch justify-center gap-2">
                     <button
                       id="request-credential-button"
                       data-tid="request-credential-button"
@@ -195,6 +224,7 @@
                     >
                       Request Credential
                     </button>
+                    <p class="text-red-600 text-sm" id="credential-error"></p>
                   </div>
                 </div>
               </div>

@@ -16,10 +16,10 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 use vc_util::issuer_api::{
-    CredentialSpec, DerivationOriginData, DerivationOriginError, DerivationOriginRequest,
-    GetCredentialRequest, Icrc21ConsentInfo, Icrc21Error, Icrc21VcConsentMessageRequest,
-    IssueCredentialError, IssuedCredentialData, PrepareCredentialRequest, PreparedCredentialData,
-    SignedIdAlias,
+    ArgumentValue, CredentialSpec, DerivationOriginData, DerivationOriginError,
+    DerivationOriginRequest, GetCredentialRequest, Icrc21ConsentInfo, Icrc21Error,
+    Icrc21VcConsentMessageRequest, IssueCredentialError, IssuedCredentialData,
+    PrepareCredentialRequest, PreparedCredentialData, SignedIdAlias,
 };
 use vc_util::{
     build_credential_jwt, did_for_principal, vc_jwt_to_jws, vc_signing_input,
@@ -56,16 +56,32 @@ fn update_root_hash() {
     })
 }
 
+pub fn format_credential_spec(spec: &CredentialSpec) -> String {
+    let mut description = format!("# Credential Type\n{}\n", spec.credential_type);
+
+    if let Some(arguments) = &spec.arguments {
+        description.push_str("## Arguments\n");
+        for (key, value) in arguments {
+            let value_str = match value {
+                ArgumentValue::String(s) => s.clone(),
+                ArgumentValue::Int(i) => i.to_string(),
+            };
+            description.push_str(&format!("- **{}**: {}\n", key, value_str));
+        }
+    } else {
+        description.push_str("## Arguments\nNone\n");
+    }
+
+    description
+}
+
 #[update]
 #[candid_method]
 async fn vc_consent_message(
     req: Icrc21VcConsentMessageRequest,
 ) -> Result<Icrc21ConsentInfo, Icrc21Error> {
     Ok(Icrc21ConsentInfo {
-        consent_message: format!(
-            "Consent message from dummy issuer: {}",
-            req.credential_spec.credential_type
-        ),
+        consent_message: format_credential_spec(&req.credential_spec),
         language: "en".to_string(),
     })
 }
