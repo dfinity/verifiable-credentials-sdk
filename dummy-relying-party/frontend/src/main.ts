@@ -239,6 +239,9 @@ const renderDecodedCredentialPresentation = (jwt: string) => {
 
 const renderCredential = (jwt: string) => {
   showVcContainer();
+  if (credentialErrorElement) {
+    credentialErrorElement.innerText = "";
+  }
   if (vcResultElement && vcContainer) {
     vcResultElement.innerText = jwt;
     window.scrollTo({ top: vcContainer.offsetTop, behavior: "smooth" });
