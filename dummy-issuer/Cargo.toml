@@ -13,11 +13,11 @@ ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
 ic-certification = "2.2"
 # II Dependencies
-vc_util = { git="https://github.com/dfinity/internet-identity", rev="1417991b69660046cc0b4f1ea93a5903b037f3b1" }
-canister_sig_util = { git="https://github.com/dfinity/internet-identity", rev="1417991b69660046cc0b4f1ea93a5903b037f3b1" }
-identity_jose = { git = "https://github.com/frederikrothenberger/identity.rs.git", branch = "frederik/wasm-test", default-features = false, features = ["iccs"]}
-identity_credential = { git = "https://github.com/frederikrothenberger/identity.rs.git", branch = "frederik/wasm-test", default-features = false , features = ["validator"] }
-identity_core = { git = "https://github.com/frederikrothenberger/identity.rs.git", branch = "frederik/wasm-test", default-features = false }
+vc_util = { git="https://github.com/dfinity/internet-identity", rev="14607ee43877b1ccbbea18d17e5a36cda15480bd" }
+canister_sig_util = { git="https://github.com/dfinity/internet-identity", rev="14607ee43877b1ccbbea18d17e5a36cda15480bd" }
+identity_core = { git = "https://github.com/dfinity/identity.rs.git", rev = "63d3683cf6b6e48136ffb6812125dd8addfbbe75", default-features = false, features = ["ic-wasm"] }
+identity_credential = { git = "https://github.com/dfinity/identity.rs.git", rev = "63d3683cf6b6e48136ffb6812125dd8addfbbe75", default-features = false , features = ["ic-wasm", "validator"] }
+identity_jose = { git = "https://github.com/dfinity/identity.rs.git", rev = "63d3683cf6b6e48136ffb6812125dd8addfbbe75", default-features = false}
 # Other dependencies
 serde_bytes = "0.11"
 serde_json = "1"
