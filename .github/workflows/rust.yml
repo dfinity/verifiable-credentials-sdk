@@ -14,11 +14,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: |
+            ~/.cargo
+            target
+          key: cargo-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-
 
       - name: Install Rust
         run: |
           rustup component add rustfmt
           rustup component add clippy
+          cargo --version
 
       - name: Check Format
         run: cargo fmt --all -- --check
