@@ -6,7 +6,7 @@ use ic_cdk::api::management_canister::main::CanisterId;
 use pocket_ic::{PocketIc, WasmResult};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use vc_util::issuer_api::{
+use ic_verifiable_credentials::issuer_api::{
     ArgumentValue, CredentialSpec, DerivationOriginData, DerivationOriginError,
     DerivationOriginRequest, GetCredentialRequest, Icrc21ConsentInfo, Icrc21ConsentPreferences,
     Icrc21Error, Icrc21VcConsentMessageRequest, PrepareCredentialRequest, SignedIdAlias,

@@ -3,7 +3,8 @@ resolver = "2"
 
 members = [
     "dummy-relying-party",
-    "dummy-issuer"
+    "dummy-issuer",
+    "rust-packages/ic-verifiable-credentials",
 ]
 
 [workspace.package]
@@ -19,15 +20,16 @@ base64 = "0.21"
 sha2 = "0.10"
 lazy_static = "1.4"
 serde_cbor = "0.11"
+serde_bytes = "0.11"
 anyhow = "1.0"
 candid = "0.10"
 ic-cdk = "0.13"
 ic-cdk-macros = "0.13"
 ic-certification = "2.2"
 ic-http-certification = "2.5"
+ic-verifiable-credentials = { path = "rust-packages/ic-verifiable-credentials" }
 
 # II dependencies
-vc_util = { git="https://github.com/dfinity/internet-identity", rev="f668535241bb01fa9a7fb508b6579407c8afe59c" }
 canister_sig_util = { git="https://github.com/dfinity/internet-identity", rev="f668535241bb01fa9a7fb508b6579407c8afe59c" }
 
 [workspace.dependencies.serde]

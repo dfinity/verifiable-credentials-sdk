@@ -12,9 +12,9 @@ candid.workspace = true
 ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
 ic-certification.workspace = true
+ic-verifiable-credentials.workspace = true
 
 # II Dependencies
-vc_util.workspace = true
 canister_sig_util.workspace = true
 
 # Other dependencies

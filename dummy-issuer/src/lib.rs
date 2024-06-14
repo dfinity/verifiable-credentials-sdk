@@ -10,13 +10,13 @@ use serde_bytes::ByteBuf;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
-use vc_util::issuer_api::{
+use ic_verifiable_credentials::issuer_api::{
     ArgumentValue, CredentialSpec, DerivationOriginData, DerivationOriginError,
     DerivationOriginRequest, GetCredentialRequest, Icrc21ConsentInfo, Icrc21Error,
     Icrc21VcConsentMessageRequest, IssueCredentialError, IssuedCredentialData,
     PrepareCredentialRequest, PreparedCredentialData,
 };
-use vc_util::{
+use ic_verifiable_credentials::{
     build_credential_jwt, did_for_principal, vc_jwt_to_jws, vc_signing_input,
     vc_signing_input_hash, CredentialParams,
 };
