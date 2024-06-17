@@ -35,7 +35,7 @@ enum CanisterCall {
 }
 
 mod api {
-    use vc_util::issuer_api::{
+    use ic_verifiable_credentials::issuer_api::{
         GetCredentialRequest, IssueCredentialError, IssuedCredentialData, PrepareCredentialRequest,
         PreparedCredentialData,
     };
