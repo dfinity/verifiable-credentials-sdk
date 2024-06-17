@@ -1,11 +1,8 @@
+use base64::Engine;
 use std::collections::HashMap;
 
 use candid::{decode_one, encode_one, CandidType, Deserialize, Principal};
 use ic_cdk::api::management_canister::main::CanisterId;
-use identity_credential::error::Error as JwtVcError;
-use identity_credential::validator::JwtValidationError;
-use identity_jose::jws::Decoder;
-use identity_jose::jwt::JwtClaims;
 use pocket_ic::{PocketIc, WasmResult};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -200,32 +197,22 @@ fn test_derivation_origin() {
     }
 }
 
-fn jwt_error(custom_message: &'static str) -> JwtValidationError {
-    JwtValidationError::CredentialStructure(JwtVcError::InconsistentCredentialJwtClaims(
-        custom_message,
-    ))
-}
-
-// Decodes a Verifiable Credential JWT and returns the value within `"credentialSubject`.
-// This function doesn't perform any verification of the signature.
-fn get_credential_from_jwt(jwt_vc: String) -> Result<String, JwtValidationError> {
-    ///// Decode JWS.
-    let decoder: Decoder = Decoder::new();
-    let jws = decoder
-        .decode_compact_serialization(jwt_vc.as_ref(), None)
-        .map_err(|_| jwt_error("credential JWS parsing error"))?;
-    let claims: JwtClaims<Value> = serde_json::from_slice(jws.claims())
-        .map_err(|_| jwt_error("failed parsing JSON JWT claims"))?;
-    let vc = claims
-        .vc()
-        .ok_or(jwt_error("missing \"vc\" claim in id_alias JWT claims"))?;
-    let subject_value = vc.get("credentialSubject").ok_or(jwt_error(
-        "missing \"credentialSubject\" claim in id_alias JWT vc",
-    ))?;
-    match serde_json::to_string(subject_value) {
-        Ok(credential) => Ok(credential),
-        Err(_) => Err(jwt_error("Error converting credential back to JSON string")),
-    }
+/// Decodes a Verifiable Credential JWT and returns the value within `vc.credentialSubject`.
+/// This function doesn't perform any validation or signature verification.
+fn get_credential_subject_from_jwt(jwt_vc: String) -> String {
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD as BASE64;
+    let payload = jwt_vc
+        .split('.')
+        .skip(1)
+        .next()
+        .expect("Failed to parse JWT");
+    let claims: Value =
+        serde_json::from_slice(&BASE64.decode(payload).expect("Failed to decode base64"))
+            .expect("Failed to parse JSON");
+    claims
+        .pointer("/vc/credentialSubject")
+        .expect("Failed to extract credentialSubject")
+        .to_string()
 }
 
 #[test]
@@ -261,7 +248,7 @@ fn should_issue_any_credential() {
     let get_credential_response =
         api::get_credential(&pic, issuer_canister_id, get_credential_request, None).unwrap();
 
-    let vc_jwt = get_credential_from_jwt(get_credential_response.vc_jws).unwrap();
+    let vc_jwt = get_credential_subject_from_jwt(get_credential_response.vc_jws);
 
     assert_eq!(vc_jwt, "{\"VerifiedAge\":{\"ageAtLeast\":18}}");
 }

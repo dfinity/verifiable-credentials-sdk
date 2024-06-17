@@ -1,15 +1,10 @@
+use base64::Engine;
 use candid::{candid_method, Principal};
 use canister_sig_util::signature_map::{SignatureMap, LABEL_SIG};
 use canister_sig_util::CanisterSigPublicKey;
 use ic_cdk::api::{set_certified_data, time};
 use ic_cdk_macros::{query, update};
 use ic_certification::{labeled_hash, Hash};
-use identity_core::convert::FromJson;
-use identity_credential::credential::Subject;
-use identity_credential::error::Error as JwtVcError;
-use identity_credential::validator::JwtValidationError;
-use identity_jose::jws::Decoder;
-use identity_jose::jwt::JwtClaims;
 use lazy_static::lazy_static;
 use serde_bytes::ByteBuf;
 use serde_json::Value;
@@ -19,7 +14,7 @@ use vc_util::issuer_api::{
     ArgumentValue, CredentialSpec, DerivationOriginData, DerivationOriginError,
     DerivationOriginRequest, GetCredentialRequest, Icrc21ConsentInfo, Icrc21Error,
     Icrc21VcConsentMessageRequest, IssueCredentialError, IssuedCredentialData,
-    PrepareCredentialRequest, PreparedCredentialData, SignedIdAlias,
+    PrepareCredentialRequest, PreparedCredentialData,
 };
 use vc_util::{
     build_credential_jwt, did_for_principal, vc_jwt_to_jws, vc_signing_input,
@@ -96,50 +91,31 @@ async fn derivation_origin(
     })
 }
 
-fn jwt_error(custom_message: &'static str) -> JwtValidationError {
-    JwtValidationError::CredentialStructure(JwtVcError::InconsistentCredentialJwtClaims(
-        custom_message,
-    ))
-}
-
 fn internal_error(msg: &str) -> IssueCredentialError {
     IssueCredentialError::Internal(String::from(msg))
 }
 
-// Decodes the id_alias JWS received from II and returns the principal.
-// This function doesn't perform any verification of the signature.
-fn get_id_alias(signed_id_alias: &SignedIdAlias) -> Result<Principal, JwtValidationError> {
-    ///// Decode JWS.
-    let decoder: Decoder = Decoder::new();
-    let jws = decoder
-        .decode_compact_serialization(&signed_id_alias.credential_jws.as_ref(), None)
-        .map_err(|_| jwt_error("credential JWS parsing error"))?;
-    let claims: JwtClaims<Value> = serde_json::from_slice(jws.claims())
-        .map_err(|_| jwt_error("failed parsing JSON JWT claims"))?;
-    let vc = claims
-        .vc()
-        .ok_or(jwt_error("missing \"vc\" claim in id_alias JWT claims"))?;
-    let subject_value = vc.get("credentialSubject").ok_or(jwt_error(
-        "missing \"credentialSubject\" claim in id_alias JWT vc",
-    ))?;
-    let subject = Subject::from_json_value(subject_value.clone())
-        .map_err(|_| jwt_error("malformed \"credentialSubject\" claim in id_alias JWT vc"))?;
-    let Value::Object(ref spec) = subject.properties["InternetIdentityIdAlias"] else {
-        return Err(jwt_error(
-            "missing \"InternetIdentityIdAlias\" claim in id_alias JWT vc",
-        ));
-    };
-    let alias_value = spec.get("hasIdAlias").ok_or(jwt_error(
-        "missing \"hasIdAlias\" parameter in id_alias JWT vc",
-    ))?;
-    let Value::String(alias) = alias_value else {
-        return Err(jwt_error(
-            "wrong type of \"hasIdAlias\" value in id_alias JWT vc",
-        ));
-    };
-    let id_alias = Principal::from_text(alias)
-        .map_err(|_| jwt_error("malformed \"hasIdAlias\"-value claim in id_alias JWT vc"))?;
-    return Ok(id_alias);
+/// Decodes a Verifiable Credential JWT and returns the value within `credentialSubject`.
+/// This function doesn't perform any validation or signature verification.
+fn get_alias_from_jwt(jwt_alias: &str) -> Result<Principal, &'static str> {
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD as BASE64;
+    let payload = jwt_alias
+        .split('.')
+        .skip(1)
+        .next()
+        .ok_or("Failed to parse JWT")?;
+    let claims: Value = serde_json::from_slice(
+        &BASE64
+            .decode(payload)
+            .map_err(|_| "Failed to decode base64")?,
+    )
+    .map_err(|_| "Failed to parse payload JSON")?;
+    let alias = claims
+        .pointer("/vc/credentialSubject/InternetIdentityIdAlias/hasIdAlias")
+        .ok_or("Failed to extract alias")?
+        .as_str()
+        .ok_or("Invalid value for 'hasIdAlias'")?;
+    Principal::from_text(alias).map_err(|_| "Failed to parse principal")
 }
 
 fn exp_timestamp_s() -> u32 {
@@ -174,7 +150,7 @@ fn verified_credential(subject_principal: Principal, credential_spec: &Credentia
 async fn prepare_credential(
     req: PrepareCredentialRequest,
 ) -> Result<PreparedCredentialData, IssueCredentialError> {
-    let Ok(id_alias) = get_id_alias(&req.signed_id_alias) else {
+    let Ok(id_alias) = get_alias_from_jwt(&req.signed_id_alias.credential_jws) else {
         return Err(internal_error("Error getting id_alias"));
     };
     // let id_alias = get_id_alias(&req.signed_id_alias).unwrap_or(default);

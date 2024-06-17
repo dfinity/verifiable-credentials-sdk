@@ -21,9 +21,14 @@ lazy_static = "1.4"
 serde_cbor = "0.11"
 anyhow = "1.0"
 candid = "0.10"
-ic-cdk = "0.12"
-ic-cdk-macros = "0.8"
-ic-http-certification = "2.5.0"
+ic-cdk = "0.13"
+ic-cdk-macros = "0.13"
+ic-certification = "2.2"
+ic-http-certification = "2.5"
+
+# II dependencies
+vc_util = { git="https://github.com/dfinity/internet-identity", rev="f668535241bb01fa9a7fb508b6579407c8afe59c" }
+canister_sig_util = { git="https://github.com/dfinity/internet-identity", rev="f668535241bb01fa9a7fb508b6579407c8afe59c" }
 
 [workspace.dependencies.serde]
 version = "1.0"
