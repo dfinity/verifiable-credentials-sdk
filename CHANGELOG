@@ -4,9 +4,10 @@
 
 ## Improvements
 
-- Add the credential arguments to the consente message of the dummy issuer.
+- Add the credential arguments to the consent message of the dummy issuer.
 - Add canister id input in the dummy relying party.
 - Upgrade `@dfinity/verifiable-credentials` used in the dummy relying party to the latest published version.
+- Port vc-util from II to this repository and rename it to `ic-verifiable-credentials`.
 
 # 2024.06.10
 
