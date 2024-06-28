@@ -1,0 +1,99 @@
+on:
+  push:
+    tags:
+      - 'release-*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: |
+            ~/.cargo
+            target
+          key: cargo-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-
+
+      - name: Install ic-wasm
+        run: cargo install ic-wasm --version 0.3.5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: 'Build Issuer'
+        run: ./dummy-issuer/build.sh
+
+      - name: 'Build Relying Party'
+        run: ./dummy-relying-party/build.sh
+
+      - name: Create Release
+        uses: actions/github-script@v7
+        id: create-release
+        with:
+          result-encoding: string
+          script: |
+            const response = await github.rest.repos.createRelease({
+              owner: "dfinity",
+              repo: "verifiable-credentials-sdk",
+              tag_name: "${{ github.ref_name }}",
+              name: "${{ github.ref_name }}",
+              body: "Please see the [changelog](https://github.com/dfinity/verifiable-credentials-sdk/blob/main/CHANGELOG.md#${{ github.ref_name }}) for the detailed changes.",
+              draft: true,
+              prerelease: false,
+              generate_release_notes: false,
+            });
+            return response.data.id;
+
+      - name: Upload Issuer Wasm
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.uploadReleaseAsset({
+              owner: "dfinity",
+              repo: "verifiable-credentials-sdk",
+              release_id: ${{ steps.create-release.outputs.result }},
+              name: "dummy_issuer.wasm.gz",
+              data: require('fs').readFileSync('./dummy-issuer/dummy_issuer.wasm.gz'),
+            });
+
+      - name: Upload Issuer Interface
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.uploadReleaseAsset({
+              owner: "dfinity",
+              repo: "verifiable-credentials-sdk",
+              release_id: ${{ steps.create-release.outputs.result }},
+              name: "dummy_issuer.did",
+              data: require('fs').readFileSync('./dummy-issuer/dummy_issuer.did'),
+            });
+
+      - name: Upload Relying Party Wasm
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.uploadReleaseAsset({
+              owner: "dfinity",
+              repo: "verifiable-credentials-sdk",
+              release_id: ${{ steps.create-release.outputs.result }},
+              name: "dummy_relying_party.wasm.gz", 
+              data: require('fs').readFileSync('./dummy-relying-party/dummy_relying_party.wasm.gz'),
+            });
+
+      - name: Upload Relying Party Interface
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.uploadReleaseAsset({
+              owner: "dfinity",
+              repo: "verifiable-credentials-sdk",
+              release_id: ${{ steps.create-release.outputs.result }},
+              name: "dummy_relying_party.did", 
+              data: require('fs').readFileSync('./dummy-relying-party/dummy_relying_party.did'),
+            });
