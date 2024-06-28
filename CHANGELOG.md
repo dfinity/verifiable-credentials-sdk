@@ -1,6 +1,16 @@
 # Upcoming
 
+Changes in the upcoming versions.
+
 ## Breaking Changes
+
+## Improvements
+
+# release-2024-07-01
+
+## New projects
+
+- Add `ic-verifiable-credentials` crate to the repository.
 
 ## Improvements
 
@@ -8,10 +18,9 @@
 - Add canister id input in the dummy relying party.
 - Upgrade `@dfinity/verifiable-credentials` used in the dummy relying party to the latest published version.
 - Port vc-util from II to this repository and rename it to `ic-verifiable-credentials`.
+- Publish the dummy issuer and dummy relying party wasm modules and interface files as release artifacts so that they can be easily pulled into other projects.
 
 # 2024.06.10
-
-Changes in the upcoming versions.
 
 ## New projects
 
