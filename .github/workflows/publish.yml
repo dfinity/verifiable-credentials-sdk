@@ -34,6 +34,6 @@ jobs:
         run: printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' registry=https://registry.npmjs.org/ always-auth=true >> .npmrc
       - name: Publish
         working-directory: ${{env.working-directory}}
-        run: npm publish --provenance --access public
+        run: ./scripts/publish-npm.sh
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

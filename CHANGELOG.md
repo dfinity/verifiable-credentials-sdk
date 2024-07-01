@@ -8,6 +8,7 @@
 - Add canister id input in the dummy relying party.
 - Upgrade `@dfinity/verifiable-credentials` used in the dummy relying party to the latest published version.
 - Port vc-util from II to this repository and rename it to `ic-verifiable-credentials`.
+- Do not publish to NPM the JS library if there were no changes.
 
 # 2024.06.10
 
