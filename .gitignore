@@ -1,6 +1,8 @@
 # NPM libraries
 node_modules
 dist
+# Output of 'npm pack'
+*.tgz
 
 # Editor settings
 .vscode
