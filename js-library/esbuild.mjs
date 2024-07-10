@@ -32,6 +32,7 @@ const bundleFiles = () => {
       (file) =>
         !file.includes("test") &&
         !file.includes("spec") &&
+        !file.includes("mock") &&
         statSync(join(process.cwd(), "src", file)).isFile(),
     )
     .map((file) => `src/${file}`);
