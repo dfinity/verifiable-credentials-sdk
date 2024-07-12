@@ -56,7 +56,7 @@ requestVerifiablePresentation({
   },
   issuerData: {
     origin: "<url of the origin>",
-    canisterId: "<[optional] canister id>",
+    canisterId: "<canister id>",
   },
   credentialData: {
     credentialSpec: {
@@ -67,7 +67,7 @@ requestVerifiablePresentation({
     },
     credentialSubject: "<user's principal>",
   },
-  identityProvider: "<[optional] url identity provider>",
+  identityProvider: "<url identity provider>",
   derivationOrigin: "<[optional] origin for delegated identity>",
   windowOpenerFeatures: "<[optional] window opener config string>",
 });
