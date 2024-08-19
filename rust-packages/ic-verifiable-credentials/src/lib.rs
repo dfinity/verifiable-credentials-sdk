@@ -1,9 +1,8 @@
 use crate::issuer_api::CredentialSpec;
 use candid::Principal;
-use canister_sig_util::{extract_raw_canister_sig_pk_from_der, CanisterSigPublicKey};
+use ic_canister_sig_creation::{extract_raw_canister_sig_pk_from_der, CanisterSigPublicKey};
 use ic_certification::Hash;
-use ic_crypto_standalone_sig_verifier::verify_canister_sig;
-use ic_types::crypto::threshold_sig::IcRootOfTrust;
+use ic_signature_verification::verify_canister_sig;
 use identity_core::common::{Timestamp, Url};
 use identity_core::convert::FromJson;
 use identity_credential::credential::{Credential, CredentialBuilder, Jwt, Subject};
@@ -218,12 +217,13 @@ pub fn verify_credential_jws_with_canister_id(
         )));
     }
 
-    let root_pk_bytes: [u8; 96] = root_pk_raw
-        .try_into()
-        .map_err(|e| key_decoding_err(&format!("invalid root public key: {}", e)))?;
-    let root_pk = IcRootOfTrust::from(root_pk_bytes);
-    verify_canister_sig(&message, signature, canister_sig_pk_raw.as_slice(), root_pk)
-        .map_err(|e| invalid_signature_err(&format!("signature verification error: {}", e)))?;
+    verify_canister_sig(
+        &message,
+        signature,
+        canister_sig_pk_raw.as_slice(),
+        root_pk_raw,
+    )
+    .map_err(|e| invalid_signature_err(&format!("signature verification error: {}", e)))?;
 
     let claims: JwtClaims<Value> = serde_json::from_slice(jws.claims())
         .map_err(|e| invalid_signature_err(&format!("failed parsing JSON JWT claims: {}", e)))?;
@@ -686,7 +686,7 @@ mod tests {
     use super::*;
     use crate::issuer_api::ArgumentValue;
     use assert_matches::assert_matches;
-    use canister_sig_util::{extract_raw_root_pk_from_der, IC_ROOT_PK_DER_PREFIX};
+    use ic_canister_sig_creation::{extract_raw_root_pk_from_der, IC_ROOT_PK_DER_PREFIX};
     use identity_core::common::Url;
     use std::collections::HashMap;
 

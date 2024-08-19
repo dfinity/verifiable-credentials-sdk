@@ -28,9 +28,8 @@ ic-cdk-macros = "0.13"
 ic-certification = "2.2"
 ic-http-certification = "2.5"
 ic-verifiable-credentials = { path = "rust-packages/ic-verifiable-credentials" }
-
-# II dependencies
-canister_sig_util = { git="https://github.com/dfinity/internet-identity", rev="f668535241bb01fa9a7fb508b6579407c8afe59c" }
+ic-canister-sig-creation = "1.1"
+ic-signature-verification = "0.1.0"
 
 [workspace.dependencies.serde]
 version = "1.0"

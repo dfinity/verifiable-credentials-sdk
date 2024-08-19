@@ -9,13 +9,13 @@ crate-type = ["cdylib"]
 [dependencies]
 # IC Dependencies
 candid.workspace = true
+ic-canister-sig-creation.workspace = true
 ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
 ic-certification.workspace = true
 ic-verifiable-credentials.workspace = true
-
-# II Dependencies
-canister_sig_util.workspace = true
+# unfortunately, there is a transitive dependency on getrandom which does _not_ compile to wasm unless we add this hacky workaround
+ic-crypto-getrandom-for-wasm = { git="https://github.com/dfinity/ic", rev="faacac31032a9b98020475eb608fd63455603556" }
 
 # Other dependencies
 serde_bytes = "0.11"

@@ -9,12 +9,11 @@ edition = "2021"
 [dependencies]
 # ic dependencies
 candid.workspace = true
+ic-canister-sig-creation.workspace = true
 ic-certification.workspace = true
-canister_sig_util.workspace = true
+ic-signature-verification.workspace = true
 
 # vc dependencies
-ic-crypto-standalone-sig-verifier = { git = "https://github.com/dfinity/ic", rev = "e69bcc7b319cbb3ebc22ec55af35287741244db6" }
-ic-types = { git = "https://github.com/dfinity/ic", rev = "e69bcc7b319cbb3ebc22ec55af35287741244db6" }
 identity_core = { git = "https://github.com/dfinity/identity.rs.git", rev = "aa510ef7f441848d6c78058fe51ad4ad1d9bd5d8", default-features = false, features = ["ic-wasm"] }
 identity_credential = { git = "https://github.com/dfinity/identity.rs.git", rev = "aa510ef7f441848d6c78058fe51ad4ad1d9bd5d8", default-features = false , features = ["ic-wasm", "validator"] }
 identity_jose = { git = "https://github.com/dfinity/identity.rs.git", rev = "aa510ef7f441848d6c78058fe51ad4ad1d9bd5d8", default-features = false}

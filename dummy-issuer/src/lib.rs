@@ -1,7 +1,7 @@
 use base64::Engine;
 use candid::{candid_method, Principal};
-use canister_sig_util::signature_map::{SignatureMap, LABEL_SIG};
-use canister_sig_util::CanisterSigPublicKey;
+use ic_canister_sig_creation::signature_map::{CanisterSigInputs, SignatureMap, LABEL_SIG};
+use ic_canister_sig_creation::CanisterSigPublicKey;
 use ic_cdk::api::{set_certified_data, time};
 use ic_cdk_macros::{query, update};
 use ic_certification::{labeled_hash, Hash};
@@ -12,8 +12,8 @@ use ic_verifiable_credentials::issuer_api::{
     PrepareCredentialRequest, PreparedCredentialData,
 };
 use ic_verifiable_credentials::{
-    build_credential_jwt, did_for_principal, vc_jwt_to_jws, vc_signing_input,
-    vc_signing_input_hash, CredentialParams,
+    build_credential_jwt, did_for_principal, vc_jwt_to_jws, vc_signing_input, CredentialParams,
+    VC_SIGNING_INPUT_DOMAIN,
 };
 use lazy_static::lazy_static;
 use serde_bytes::ByteBuf;
@@ -153,16 +153,15 @@ async fn prepare_credential(
     let Ok(id_alias) = get_alias_from_jwt(&req.signed_id_alias.credential_jws) else {
         return Err(internal_error("Error getting id_alias"));
     };
-    // let id_alias = get_id_alias(&req.signed_id_alias).unwrap_or(default);
     let credential_jwt = verified_credential(id_alias, &req.credential_spec);
     let signing_input =
         vc_signing_input(&credential_jwt, &CANISTER_SIG_PK).expect("failed getting signing_input");
-    let msg_hash = vc_signing_input_hash(&signing_input);
-
-    SIGNATURES.with(|sigs| {
-        let mut sigs = sigs.borrow_mut();
-        sigs.add_signature(&CANISTER_SIG_SEED, msg_hash);
-    });
+    let sig_inputs = CanisterSigInputs {
+        domain: VC_SIGNING_INPUT_DOMAIN,
+        message: &signing_input,
+        seed: &CANISTER_SIG_SEED,
+    };
+    SIGNATURES.with_borrow_mut(|sigs| sigs.add_signature(&sig_inputs));
     update_root_hash();
     Ok(PreparedCredentialData {
         prepared_context: Some(ByteBuf::from(credential_jwt.as_bytes())),
@@ -190,11 +189,12 @@ fn get_credential(req: GetCredentialRequest) -> Result<IssuedCredentialData, Iss
     };
     let signing_input =
         vc_signing_input(&credential_jwt, &CANISTER_SIG_PK).expect("failed getting signing_input");
-    let message_hash = vc_signing_input_hash(&signing_input);
-    let sig_result = SIGNATURES.with(|sigs| {
-        let sig_map = sigs.borrow();
-        sig_map.get_signature_as_cbor(&CANISTER_SIG_SEED, message_hash, None)
-    });
+    let sig_inputs = CanisterSigInputs {
+        domain: VC_SIGNING_INPUT_DOMAIN,
+        message: &signing_input,
+        seed: &CANISTER_SIG_SEED,
+    };
+    let sig_result = SIGNATURES.with_borrow(|sigs| sigs.get_signature_as_cbor(&sig_inputs, None));
     let sig = match sig_result {
         Ok(sig) => sig,
         Err(e) => {
