@@ -205,8 +205,8 @@ pub fn verify_credential_jws_with_canister_id(
     let jws_header = jws
         .protected_header()
         .ok_or(invalid_signature_err("missing JWS header"))?;
-    let canister_sig_pk_raw = get_canister_sig_pk_raw(jws_header)?;
-    let canister_sig_pk = CanisterSigPublicKey::try_from_raw(canister_sig_pk_raw.as_slice())
+    let canister_sig_pk_der = get_canister_sig_pk_der(jws_header)?;
+    let canister_sig_pk = CanisterSigPublicKey::try_from(canister_sig_pk_der.as_slice())
         .map_err(|e| key_decoding_err(&format!("invalid canister sig public key: {}", e)))?;
 
     if signing_canister_id != &canister_sig_pk.canister_id {
@@ -220,7 +220,7 @@ pub fn verify_credential_jws_with_canister_id(
     verify_canister_sig(
         &message,
         signature,
-        canister_sig_pk_raw.as_slice(),
+        canister_sig_pk_der.as_slice(),
         root_pk_raw,
     )
     .map_err(|e| invalid_signature_err(&format!("signature verification error: {}", e)))?;
@@ -624,10 +624,18 @@ fn inconsistent_jwt_claims(custom_message: &'static str) -> JwtValidationError {
     ))
 }
 
-/// Extracts and returns raw canister sig public key (without DER-prefix) from the given header.
+/// Extracts and returns the raw canister sig public key (without DER-prefix) from the given header.
 pub fn get_canister_sig_pk_raw(
     jws_header: &JwsHeader,
 ) -> Result<Vec<u8>, SignatureVerificationError> {
+    let pk_der = get_canister_sig_pk_der(jws_header)?;
+    let pk_raw = extract_raw_canister_sig_pk_from_der(pk_der.as_slice())
+        .map_err(|e| key_decoding_err(&e.to_string()))?;
+    Ok(pk_raw)
+}
+
+/// Extracts and returns the DER encoded canister sig public key from the given header.
+fn get_canister_sig_pk_der(jws_header: &JwsHeader) -> Result<Vec<u8>, SignatureVerificationError> {
     let jwk = jws_header
         .deref()
         .jwk()
@@ -645,9 +653,7 @@ pub fn get_canister_sig_pk_raw(
         .map_err(|_| key_decoding_err("missing JWK oct params"))?;
     let pk_der = decode_b64(jwk_params.k.as_bytes())
         .map_err(|_| key_decoding_err("invalid base64url encoding"))?;
-    let pk_raw = extract_raw_canister_sig_pk_from_der(pk_der.as_slice())
-        .map_err(|e| key_decoding_err(&e.to_string()))?;
-    Ok(pk_raw)
+    Ok(pk_der)
 }
 
 fn construct_verifiable_presentation_jwt(
@@ -896,9 +902,8 @@ mod tests {
             &ic_root_pk,
             CURRENT_TIME_BEFORE_EXPIRY_NS,
         );
-        assert_matches!(result, Err(e) if  { let err_msg = e.to_string();
-            err_msg.contains("invalid signature") &&
-            err_msg.contains("Malformed ThresBls12_381 public key") });
+        let err = result.err().expect("expected error");
+        assert!(err.to_string().contains("invalid BLS signature"))
     }
 
     #[test]
