@@ -635,7 +635,7 @@ pub fn get_canister_sig_pk_raw(
 }
 
 /// Extracts and returns the DER encoded canister sig public key from the given header.
-fn get_canister_sig_pk_der(jws_header: &JwsHeader) -> Result<Vec<u8>, SignatureVerificationError> {
+pub fn get_canister_sig_pk_der(jws_header: &JwsHeader) -> Result<Vec<u8>, SignatureVerificationError> {
     let jwk = jws_header
         .deref()
         .jwk()
