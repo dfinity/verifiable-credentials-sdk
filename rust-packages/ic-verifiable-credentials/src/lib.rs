@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use crate::issuer_api::CredentialSpec;
 use candid::Principal;
 use ic_canister_sig_creation::{extract_raw_canister_sig_pk_from_der, CanisterSigPublicKey};
@@ -592,7 +593,9 @@ fn jws_encoder<'a>(
     canister_sig_pk: &CanisterSigPublicKey,
 ) -> Result<CompactJwsEncoder<'a>, String> {
     let mut header: JwsHeader = JwsHeader::new();
-    header.set_alg(JwsAlgorithm::IcCs);
+    let mut custom = BTreeMap::new();
+    custom.insert("alg".to_string(), Value::String("IcCs".to_string()));
+    header.set_custom(custom);
     let kid = did_for_principal(canister_sig_pk.canister_id);
     let jwk = canister_sig_pk_jwk(&canister_sig_pk.to_der())?;
     header.set_kid(kid);
