@@ -22,7 +22,7 @@ serde_bytes = "0.11"
 serde_json = "1"
 lazy_static = "1.4"
 sha2 = "^0.10" # set bound to match ic-certified-map bound
-base64 = "0.21"
+base64.workspace = true
 
 [dev-dependencies]
 pocket-ic = "3.1.0"

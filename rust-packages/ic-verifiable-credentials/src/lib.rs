@@ -1,14 +1,16 @@
 use crate::issuer_api::CredentialSpec;
+use base64::Engine;
 use candid::Principal;
 use ic_canister_sig_creation::{extract_raw_canister_sig_pk_from_der, CanisterSigPublicKey};
 use ic_certification::Hash;
 use ic_signature_verification::verify_canister_sig;
 use identity_core::common::{Timestamp, Url};
 use identity_core::convert::FromJson;
+use identity_core::register_custom_now_utc;
 use identity_credential::credential::{Credential, CredentialBuilder, Jwt, Subject};
 use identity_credential::error::Error as JwtVcError;
 use identity_credential::presentation::{
-    JwtPresentationOptions, Presentation, PresentationBuilder, PresentationJwtClaims,
+    JwtPresentationOptions, Presentation, PresentationBuilder,
 };
 use identity_credential::validator::JwtValidationError;
 use identity_jose::jwk::{Jwk, JwkParams, JwkParamsOct, JwkType};
@@ -21,8 +23,20 @@ use identity_jose::jwu::{decode_b64, encode_b64};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use std::ops::{Add, Deref, DerefMut};
+use std::time::Duration;
 
 pub mod issuer_api;
+
+#[cfg(not(test))]
+mod ic_time {
+    use super::*;
+    use ic_cdk::api::time;
+
+    fn ic_now() -> Timestamp {
+        Timestamp::from_unix(Duration::from_nanos(time()).as_secs() as i64).unwrap()
+    }
+    register_custom_now_utc!(ic_now);
+}
 
 pub const II_CREDENTIAL_URL_PREFIX: &str = "data:text/plain;charset=UTF-8,";
 pub const II_ISSUER_URL: &str = "https://identity.ic0.app/";
@@ -232,16 +246,29 @@ pub fn verify_credential_jws_with_canister_id(
     Ok(claims)
 }
 
-fn parse_verifiable_presentation_jwt(vp_jwt: &str) -> Result<Presentation<Jwt>, String> {
-    let decoder = Decoder::new();
-    let jwt = decoder
-        .decode_compact_serialization(vp_jwt.as_ref(), None)
-        .map_err(|_| "failed decoding compact jwt serialization")?;
-    let presentation_claims = PresentationJwtClaims::from_json_slice(&jwt.claims())
-        .map_err(|_| "failed parsing presentation claims")?;
-    Ok(presentation_claims
-        .try_into_presentation()
-        .map_err(|_| "failed exporting presentation")?)
+fn extract_credentials_from_vp(vp_jwt: &str) -> Result<Vec<Jwt>, String> {
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD as BASE64;
+    let payload = vp_jwt
+        .split('.')
+        .skip(1)
+        .next()
+        .ok_or("Failed to parse presentation JWT")?;
+    let claims: Value = serde_json::from_slice(
+        &BASE64
+            .decode(payload)
+            .map_err(|_| "Failed to decode base64")?,
+    )
+    .map_err(|_| "Failed to parse payload JSON")?;
+    let credentials = claims
+        .pointer("/vp/verifiableCredential")
+        .ok_or("Failed to extract verifiableCredential claim")?
+        .as_array()
+        .ok_or("Invalid value for 'verifiableCredential' claim")?;
+    Ok(credentials
+        .into_iter()
+        .flat_map(|value| value.as_str())
+        .map(|jwt| Jwt::new(jwt.to_string()))
+        .collect())
 }
 
 /// Verifies the specified JWT presentation cryptographically, which should contain exactly
@@ -260,16 +287,18 @@ pub fn verify_ii_presentation_jwt_with_canister_ids(
     root_pk_raw: &[u8],
     current_time_ns: u128,
 ) -> Result<(AliasTuple, JwtClaims<Value>), PresentationVerificationError> {
-    let presentation = parse_verifiable_presentation_jwt(vp_jwt)
+    let credentials = extract_credentials_from_vp(vp_jwt)
         .map_err(PresentationVerificationError::InvalidPresentationJwt)?;
-    if presentation.verifiable_credential.len() != 2 {
+    if credentials.len() != 2 {
         return Err(PresentationVerificationError::InvalidPresentationJwt(
             "expected exactly two verifiable credentials".to_string(),
         ));
     }
-    let id_alias_vc_jws = presentation.verifiable_credential.first().ok_or(
-        PresentationVerificationError::Unknown("missing id_alias vc".to_string()),
-    )?;
+    let id_alias_vc_jws = credentials
+        .first()
+        .ok_or(PresentationVerificationError::Unknown(
+            "missing id_alias vc".to_string(),
+        ))?;
     let alias_tuple = get_verified_id_alias_from_jws(
         id_alias_vc_jws.as_str(),
         &effective_vc_subject,
@@ -278,13 +307,11 @@ pub fn verify_ii_presentation_jwt_with_canister_ids(
         current_time_ns,
     )
     .map_err(PresentationVerificationError::InvalidIdAliasCredential)?;
-    let requested_vc_jws =
-        presentation
-            .verifiable_credential
-            .get(1)
-            .ok_or(PresentationVerificationError::Unknown(
-                "missing requested vc".to_string(),
-            ))?;
+    let requested_vc_jws = credentials
+        .get(1)
+        .ok_or(PresentationVerificationError::Unknown(
+            "missing requested vc".to_string(),
+        ))?;
     let claims = verify_credential_jws_with_canister_id(
         requested_vc_jws.as_str(),
         &vc_flow_signers.issuer_canister_id,
@@ -592,7 +619,7 @@ fn jws_encoder<'a>(
     canister_sig_pk: &CanisterSigPublicKey,
 ) -> Result<CompactJwsEncoder<'a>, String> {
     let mut header: JwsHeader = JwsHeader::new();
-    header.set_alg(JwsAlgorithm::IcCs);
+    header.set_alg(JwsAlgorithm::Custom("IcCs".to_string()));
     let kid = did_for_principal(canister_sig_pk.canister_id);
     let jwk = canister_sig_pk_jwk(&canister_sig_pk.to_der())?;
     header.set_kid(kid);
@@ -695,7 +722,6 @@ mod tests {
     use crate::issuer_api::ArgumentValue;
     use assert_matches::assert_matches;
     use ic_canister_sig_creation::{extract_raw_root_pk_from_der, IC_ROOT_PK_DER_PREFIX};
-    use identity_core::common::Url;
     use std::collections::HashMap;
 
     const TEST_IC_ROOT_PK_B64URL: &str = "MIGCMB0GDSsGAQQBgtx8BQMBAgEGDCsGAQQBgtx8BQMCAQNhAK32VjilMFayIiyRuyRXsCdLypUZilrL2t_n_XIXjwab3qjZnpR52Ah6Job8gb88SxH-J1Vw1IHxaY951Giv4OV6zB4pj4tpeY2nqJG77Blwk-xfR1kJkj1Iv-1oQ9vtHw";
@@ -725,6 +751,14 @@ mod tests {
     const ID_ALIAS_VC_FOR_VP_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFBQUFBQUVCMGd6TTVJeXFMYUhyMDhtQTRWd2J5SmRxQTFyRVFUX2xNQnVVbmN5UDVVYyJ9LCJraWQiOiJkaWQ6aWNwOnJ3bGd0LWlpYWFhLWFhYWFhLWFhYWFhLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE2MjAzMjk1MzAsImlzcyI6Imh0dHBzOi8vaWRlbnRpdHkuaWMwLmFwcC8iLCJuYmYiOjE2MjAzMjg2MzAsImp0aSI6ImRhdGE6dGV4dC9wbGFpbjtjaGFyc2V0PVVURi04LHRpbWVzdGFtcF9uczoxNjIwMzI4NjMwMDAwMDAwMDAwLGFsaWFzX2hhc2g6NThiYzcxMmYyMjFhOTJmMGE5OTRhZDZmN2JmOWVjNjc0MzBmMGFkMzNmYWVlZDAzZmUzZDU2NTYyMTliMjQ2MiIsInN1YiI6ImRpZDppY3A6cDJubGMtM3M1dWwtbGN1NzQtdDZwbjItdWk1aW0taTRhNWYtYTR0Z2EtZTZ6bmYtdG52bGgtd2ttanMtZHFlIiwidmMiOnsiQGNvbnRleHQiOiJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSIsInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyI6eyJoYXNJZEFsaWFzIjoiamtrMjItenFkeGMta2dwZXotNnN2Mm0tNXBieTQtd2k0dDItcHJtb3EtZ2YyaWgtaTJxdGMtdjM3YWMtNWFlIn19fX0.2dn3omtjZXJ0aWZpY2F0ZVkBsdnZ96JkdHJlZYMBgwGDAYMCSGNhbmlzdGVygwGDAkoAAAAAAAAAAAEBgwGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1ggvlJBTZDgK1_9Vb3-18dWKIfy28WTjZ1YqdjFWWAIX96CBFgg0sz_P8xdqTDewOhKJUHmWFFrS7FQHnDotBDmmGoFfWCCBFgg_KZ0TVqubo_EGWoMUPA35BYZ4B5ZRkR_zDfNIQCwa46CBFggDxSoL5vzjhHDgnrdmgRhclanMmjjpWYL41-us6gEU6mCBFggXAzCWvb9h4qsVs41IUJBABzjSqAZ8DIzF_ghGHpGmHGCBFggRbE3sOaqi_9kL-Uz1Kmf_pCWt4FSRaHU9KLSFTT3eceCBFggQERIfN1eHBUYfQr2fOyI_nTKHS71uqu-wOAdYwqyUX-DAYIEWCA1U_ZYHVOz3Sdkb2HIsNoLDDiBuFfG3DxH6miIwRPra4MCRHRpbWWCA0mAuK7U3YmkvhZpc2lnbmF0dXJlWDCm_9R-rt9zbE2eP_WbCyFqO7txO86wNfBS1lyyJJ6gxy1D2Wnw5kNo2XUKUBmu9q5kdHJlZYMBggRYIOGnlc_3yXPTVrEJ1p3dKX5HxkMOziUnpA1HeXiQW4O8gwJDc2lngwJYIIOQR7wl3Ws9Jb8VP4rhIb37XKLMkkZ2P7WaZ5we60WGgwGDAlgg3DSOKS3cc99bdJqFjiOcs13PNpGSR8_5-UJsP23Ud0KCA0CCBFgg6wJlRmEtuY-LCp6ieeEdd6tO8_Hlct7H8VrW9DH7EaI";
     const VERIFIED_ADULT_VC_FOR_VP_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFBQUFBUUVCOEVpSWoyNkJxRWhic2ZQUW44TF9CNDJxc0JOeUdiT3ZLdlNENE9OUGhsSSJ9LCJraWQiOiJkaWQ6aWNwOnJya2FoLWZxYWFhLWFhYWFhLWFhYWFxLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE2MjAzMjk1MzAsImlzcyI6Imh0dHBzOi8vYWdlX3ZlcmlmaWVyLmluZm8vIiwibmJmIjoxNjIwMzI4NjMwLCJqdGkiOiJodHRwczovL2FnZV92ZXJpZmllci5pbmZvL2NyZWRlbnRpYWxzLzQyIiwic3ViIjoiZGlkOmljcDpqa2syMi16cWR4Yy1rZ3Blei02c3YybS01cGJ5NC13aTR0Mi1wcm1vcS1nZjJpaC1pMnF0Yy12MzdhYy01YWUiLCJ2YyI6eyJAY29udGV4dCI6Imh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIiwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIlZlcmlmaWVkQWR1bHQiXSwiY3JlZGVudGlhbFN1YmplY3QiOnsiVmVyaWZpZWRBZHVsdCI6eyJtaW5BZ2UiOjE4fX19fQ.2dn3omtjZXJ0aWZpY2F0ZVkBsdnZ96JkdHJlZYMBgwGDAYMCSGNhbmlzdGVygwGCBFggOnw-lESEpV-y1s0Lh9p1aY-XfYKBYzyHL_fmcTqp6PeDAkoAAAAAAAAAAQEBgwGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1ggO8I7YzRNmk_XVakRhuaOq1rdEj3vhLFt07YEWKwrfBSCBFgg0sz_P8xdqTDewOhKJUHmWFFrS7FQHnDotBDmmGoFfWCCBFggsN7BWldXUVrLUx_990beUdGHvTn5XEjFcgTxb8oXZZCCBFggNtRXohqxK3P8d6uyzQLSdJLBe5kv-Ng0gEHSR-OUmryCBFggiOn-4gDlCnp9jkq0VFtcJQPETxg1HnHwdHOddTpIlzWCBFggjFoCQNnMC4FEG3e2zATPdOyzWTcfRqu16bVgC18EQiCDAYIEWCA1U_ZYHVOz3Sdkb2HIsNoLDDiBuFfG3DxH6miIwRPra4MCRHRpbWWCA0mAuK7U3YmkvhZpc2lnbmF0dXJlWDCrcgY2ne3OillJ6fz8uv6dhCykfT-u0ZSKyvXZVYS1zOtRCMOSYZju2k-LERBCmLNkdHJlZYMBggRYIJIlUxoU2qt4aTwzz90fB43OK9EFDzVls4N8OHepeuLpgwJDc2lngwJYIKhCHifwHS5DiNAL6bducWQ2AShCc2bN-TzPsBEl3ov2gwGCBFggCr5Roa_ACiP36lIIHDtA47bq8L7C_nH3Z0GGJrLnE6uDAYMCWCCzsKpLUCoF4k5X0pGLjWSca9QaCMj6-oXkkFtUO7kYtoIDQIIEWCBrqYIFsKJT6MmiyQ79ksiXynSLIxl4HdOrpgsXm4TVBw";
     const VERIFIED_EMPLOYEE_VC_FOR_VP_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFBQUFBUUVCOEVpSWoyNkJxRWhic2ZQUW44TF9CNDJxc0JOeUdiT3ZLdlNENE9OUGhsSSJ9LCJraWQiOiJkaWQ6aWNwOnJya2FoLWZxYWFhLWFhYWFhLWFhYWFxLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE2MjAzMjk1MzAsImlzcyI6Imh0dHBzOi8vZW1wbG95bWVudC5pbmZvLyIsIm5iZiI6MTYyMDMyODYzMCwianRpIjoiaHR0cHM6Ly9lbXBsb3ltZW50LmluZm8vY3JlZGVudGlhbHMvNDIiLCJzdWIiOiJkaWQ6aWNwOmprazIyLXpxZHhjLWtncGV6LTZzdjJtLTVwYnk0LXdpNHQyLXBybW9xLWdmMmloLWkycXRjLXYzN2FjLTVhZSIsInZjIjp7IkBjb250ZXh0IjoiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiVmVyaWZpZWRFbXBsb3llZSJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJWZXJpZmllZEVtcGxveWVlIjp7ImVtcGxveWVyTmFtZSI6IkRGSU5JVFkgRm91bmRhdGlvbiJ9fX19.2dn3omtjZXJ0aWZpY2F0ZVkBsdnZ96JkdHJlZYMBgwGDAYMCSGNhbmlzdGVygwGCBFggOnw-lESEpV-y1s0Lh9p1aY-XfYKBYzyHL_fmcTqp6PeDAkoAAAAAAAAAAQEBgwGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1ggRugFe6Ck7NbMysgwHrks4lNkVUqkKsicdx67D59fgr-CBFgg0sz_P8xdqTDewOhKJUHmWFFrS7FQHnDotBDmmGoFfWCCBFggsN7BWldXUVrLUx_990beUdGHvTn5XEjFcgTxb8oXZZCCBFggNtRXohqxK3P8d6uyzQLSdJLBe5kv-Ng0gEHSR-OUmryCBFggYufTG35dpmNH5pv3wq__HC7kJTW1cCcRWSdFQ__KV0-CBFggon3xKa1joPZ19Djixh8oDlBboiMi5lmgnM1HKeyZ4siDAYIEWCA1U_ZYHVOz3Sdkb2HIsNoLDDiBuFfG3DxH6miIwRPra4MCRHRpbWWCA0mAuK7U3YmkvhZpc2lnbmF0dXJlWDCGPK8MNU0Mc5oSLu9IKas2ASm40jNnz_iCOP3IByDW8AqG6cfRU9ZGP4IrFg9ECKhkdHJlZYMBggRYIJIlUxoU2qt4aTwzz90fB43OK9EFDzVls4N8OHepeuLpgwJDc2lngwJYIKhCHifwHS5DiNAL6bducWQ2AShCc2bN-TzPsBEl3ov2gwJYINHB_8EbKcY_Lfj5XYVCaN8msEm9ABXR6E3wqY7msxqrggNA";
+
+    fn test_time() -> Timestamp {
+        Timestamp::from_unix(
+            Duration::from_nanos(CURRENT_TIME_BEFORE_EXPIRY_NS as u64).as_secs() as i64,
+        )
+        .unwrap()
+    }
+    register_custom_now_utc!(test_time);
 
     fn test_ic_root_pk_raw() -> Vec<u8> {
         let pk_der = decode_b64(TEST_IC_ROOT_PK_B64URL).expect("failure decoding canister pk");
@@ -938,19 +972,10 @@ mod tests {
             requested_vc_jws.clone(),
         )
         .expect("vp-creation failed");
-        let presentation: Presentation<Jwt> =
-            parse_verifiable_presentation_jwt(&vp_jwt).expect("failed jwt parsing");
+        let credentials = extract_credentials_from_vp(&vp_jwt).expect("failed jwt parsing");
 
-        assert!(presentation
-            .verifiable_credential
-            .contains(&Jwt::from(id_alias_vc_jws)));
-        assert!(presentation
-            .verifiable_credential
-            .contains(&Jwt::from(requested_vc_jws)));
-        assert_eq!(
-            Url::parse(did_for_principal(holder)).expect("bad url"),
-            presentation.holder
-        );
+        assert!(credentials.contains(&Jwt::from(id_alias_vc_jws)));
+        assert!(credentials.contains(&Jwt::from(requested_vc_jws)));
     }
 
     fn default_test_vc_flow_signers() -> VcFlowSigners {
