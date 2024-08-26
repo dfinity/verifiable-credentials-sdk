@@ -51,5 +51,8 @@ jobs:
         working-directory: dummy-issuer
         run: ./build.sh
 
+      - name: Create dist folder
+        run: mkdir -p dummy-relying-party/frontend/dist
+
       - name: Cargo tests
         run: cargo test
