@@ -14,9 +14,9 @@ ic-certification.workspace = true
 ic-signature-verification.workspace = true
 
 # vc dependencies
-identity_core = { git = "https://github.com/dfinity/identity.rs.git", rev = "aa510ef7f441848d6c78058fe51ad4ad1d9bd5d8", default-features = false, features = ["ic-wasm"] }
-identity_credential = { git = "https://github.com/dfinity/identity.rs.git", rev = "aa510ef7f441848d6c78058fe51ad4ad1d9bd5d8", default-features = false , features = ["ic-wasm", "validator"] }
-identity_jose = { git = "https://github.com/dfinity/identity.rs.git", rev = "aa510ef7f441848d6c78058fe51ad4ad1d9bd5d8", default-features = false}
+identity_core = { git = "https://github.com/frederikrothenberger/identity.rs.git", rev = "844e1f5816e2daecd0f91dcccf94b6292975332f", default-features = false, features = ["custom_time"] }
+identity_credential = { git = "https://github.com/frederikrothenberger/identity.rs.git", rev = "844e1f5816e2daecd0f91dcccf94b6292975332f", default-features = false , features = ["validator"] }
+identity_jose = { git = "https://github.com/frederikrothenberger/identity.rs.git", rev = "844e1f5816e2daecd0f91dcccf94b6292975332f", default-features = false}
 
 # other dependencies
 serde.workspace = true

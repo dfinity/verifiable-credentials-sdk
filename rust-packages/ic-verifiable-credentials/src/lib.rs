@@ -8,7 +8,7 @@ use identity_core::convert::FromJson;
 use identity_credential::credential::{Credential, CredentialBuilder, Jwt, Subject};
 use identity_credential::error::Error as JwtVcError;
 use identity_credential::presentation::{
-    JwtPresentationOptions, Presentation, PresentationBuilder, PresentationJwtClaims,
+    JwtPresentationOptions, Presentation, PresentationBuilder,
 };
 use identity_credential::validator::JwtValidationError;
 use identity_jose::jwk::{Jwk, JwkParams, JwkParamsOct, JwkType};
@@ -233,15 +233,7 @@ pub fn verify_credential_jws_with_canister_id(
 }
 
 fn parse_verifiable_presentation_jwt(vp_jwt: &str) -> Result<Presentation<Jwt>, String> {
-    let decoder = Decoder::new();
-    let jwt = decoder
-        .decode_compact_serialization(vp_jwt.as_ref(), None)
-        .map_err(|_| "failed decoding compact jwt serialization")?;
-    let presentation_claims = PresentationJwtClaims::from_json_slice(&jwt.claims())
-        .map_err(|_| "failed parsing presentation claims")?;
-    Ok(presentation_claims
-        .try_into_presentation()
-        .map_err(|_| "failed exporting presentation")?)
+    todo!()
 }
 
 /// Verifies the specified JWT presentation cryptographically, which should contain exactly
@@ -592,7 +584,7 @@ fn jws_encoder<'a>(
     canister_sig_pk: &CanisterSigPublicKey,
 ) -> Result<CompactJwsEncoder<'a>, String> {
     let mut header: JwsHeader = JwsHeader::new();
-    header.set_alg(JwsAlgorithm::IcCs);
+    //header.set_alg(JwsAlgorithm::IcCs);
     let kid = did_for_principal(canister_sig_pk.canister_id);
     let jwk = canister_sig_pk_jwk(&canister_sig_pk.to_der())?;
     header.set_kid(kid);
