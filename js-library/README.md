@@ -18,11 +18,16 @@ The bundle needs peer dependencies, be sure that following resources are availab
 npm install @dfinity/principal
 ```
 
-Import per modules:
+Import per modules to have small app size:
 
 ```javascript
-// import * from '@dfinity/verifiable-credentials'; // Error: use sub-imports, to ensure small app size
 import { requestVerifiablePresentation } from "@dfinity/verifiable-credentials/request-verifiable-presentation";
+```
+
+Or import default:
+
+```javascript
+import { requestVerifiablePresentation } from "@dfinity/verifiable-credentials";
 ```
 
 ## Relying Party: Request Credentials
