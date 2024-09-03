@@ -5,6 +5,13 @@ Changes in the upcoming versions.
 ## Breaking Changes
 
 ## Improvements
+
+# release-2024-09-03
+
+## Breaking Changes
+
+## Improvements
+
 - Update dependency versions.
 
 # release-2024-07-01
