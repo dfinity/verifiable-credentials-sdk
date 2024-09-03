@@ -1,3 +1,1 @@
-throw new Error(
-  "verifiable-credentials have no entry-point: consult README for usage",
-);
+export * from "./request-verifiable-presentation";
