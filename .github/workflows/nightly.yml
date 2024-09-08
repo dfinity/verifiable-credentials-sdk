@@ -19,6 +19,8 @@ jobs:
 
       - name: Prepare and Build JS Library
         uses: ./.github/actions/prepare
+        with:
+          folder: ${{env.working-directory}}
 
       - name: Package next
         working-directory: ${{env.working-directory}}
