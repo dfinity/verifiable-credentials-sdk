@@ -44,6 +44,8 @@
     "crypto",
     "relying party"
   ],
+  "sideEffects": false,
+  "main": "index.js",
   "exports": {
     ".": {
       "import": "./dist/index.js",
