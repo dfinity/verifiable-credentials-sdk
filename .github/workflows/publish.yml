@@ -12,7 +12,7 @@ jobs:
       id-token: write
     env:
       working-directory: js-library
-      dist-directory: ${{env.working-directory}}/dist
+      dist-directory: js-library/dist
 
     steps:
       - name: Checkout
