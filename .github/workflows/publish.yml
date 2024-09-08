@@ -12,20 +12,22 @@ jobs:
       id-token: write
     env:
       working-directory: js-library
+      dist-directory: ${{env.working-directory}}/dist
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - uses: actions/setup-node@v4
 
-      - name: Set dist-directory path
-        run: echo "DIST_DIRECTORY=${{env.working-directory}}/dist" >> $GITHUB_ENV
-
       - name: Prepare and Build JS Library
-        run: ./scripts/build.sh $DIST_DIRECTORY
+        uses: ./.github/actions/prepare
+
+      - name: Set up npm
+        working-directory: ${{env.dist-directory}}
+        run: printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' registry=https://registry.npmjs.org/ always-auth=true >> .npmrc
 
       - name: Publish
-        working-directory: $DIST_DIRECTORY
+        working-directory: ${{env.dist-directory}}
         run: ./scripts/publish-npm.sh
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

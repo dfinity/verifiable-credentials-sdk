@@ -1,16 +1,12 @@
 name: Prepare
 
-description: Checkout, install dependencies, build and test JS library + setup npm for publish
+description: Checkout, install dependencies, build and test JS library
 
 inputs:
   folder:
     description: 'The folder in which to run npm ci'
     required: false
     default: '.'
-  dist:
-    description: 'The folder in which the library is built'
-    required: false
-    default: './dist'
 
 runs:
   using: composite
@@ -19,19 +15,18 @@ runs:
       with:
         node-version: 20
         registry-url: 'https://registry.npmjs.org'
+
     - name: Install dependencies
       shell: bash
       run: npm ci
       working-directory: ${{ inputs.folder }}
+
     - name: Build
       shell: bash
       run: npm run build
       working-directory: ${{ inputs.folder }}
+
     - name: Test
       shell: bash
-      working-directory: ${{ inputs.folder }}
       run: npm run test
-    - name: Set up npm
-      shell: bash
-      run: printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' registry=https://registry.npmjs.org/ always-auth=true >> .npmrc
-      working-directory: ${{ inputs.dist }}
+      working-directory: ${{ inputs.folder }}
