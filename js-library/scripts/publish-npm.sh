@@ -10,5 +10,5 @@ NPM_SHASUM=$(curl -s "$NPM_TARBALL" 2>&1 | shasum | cut -f1 -d' ')
 if [ "$LOCAL_SHASUM" == "$NPM_SHASUM" ]; then
   echo "No changes in @dfinity/verifiable-credentials need to be published to NPM."
 else
-  npm publish --prefix dist --provenance --access public
+  npm publish --provenance --access public
 fi
