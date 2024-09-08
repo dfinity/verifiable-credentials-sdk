@@ -11,20 +11,23 @@ jobs:
       id-token: write
     env:
       working-directory: js-library
-      dist-directory: ${{env.working-directory}}/dist
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set dist-directory path
+        run: echo "DIST_DIRECTORY=${{env.working-directory}}/dist" >> $GITHUB_ENV
+
       - name: Prepare and Build JS Library
-        uses: ./.github/actions/build
-        with:
-          folder: ${{env.working-directory}}
+        run: ./scripts/build.sh $DIST_DIRECTORY
+
       - name: Package next
         working-directory: ${{env.working-directory}}
         run: ./scripts/package-next
+
       - name: Publish
-        working-directory: ${{env.dist-directory}}
+        working-directory: $DIST_DIRECTORY
         run: npm publish --provenance --tag next
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
