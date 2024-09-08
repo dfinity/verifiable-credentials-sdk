@@ -4,10 +4,13 @@
   "description": "Library to interact with the identity provider to get a credential presentation.",
   "type": "module",
   "files": [
-    "dist",
     "README.md",
     "package.json",
-    "LICENSE"
+    "LICENSE",
+    "*.js",
+    "*.js.map",
+    "*.d.ts",
+    "*.d.ts.map"
   ],
   "engines": {
     "node": ">=v20.11.1"
@@ -18,7 +21,6 @@
     "rmdir": "node ./rmdir.mjs",
     "ts-declaration": "tsc --emitDeclarationOnly --outDir dist",
     "build": "npm run rmdir && mkdir -p dist && node esbuild.mjs && npm run ts-declaration",
-    "prepack": "npm run build",
     "test": "tsc --noEmit -p ./tsconfig.spec.json && vitest"
   },
   "repository": {
@@ -48,14 +50,14 @@
   "main": "index.js",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.js"
     },
     "./request-verifiable-presentation": {
-      "import": "./dist/request-verifiable-presentation.js",
-      "require": "./dist/request-verifiable-presentation.js",
-      "types": "./dist/request-verifiable-presentation.d.ts"
+      "types": "./request-verifiable-presentation.d.ts",
+      "import": "./request-verifiable-presentation.js",
+      "require": "./request-verifiable-presentation.js"
     }
   },
   "devDependencies": {
