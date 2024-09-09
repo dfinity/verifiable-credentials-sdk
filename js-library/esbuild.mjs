@@ -48,7 +48,7 @@ const buildBrowser = () => {
       bundle: true,
       sourcemap: true,
       minify: true,
-      splitting: true,
+      splitting: false,
       format: "esm",
       define: { global: "window" },
       target: ["esnext"],
