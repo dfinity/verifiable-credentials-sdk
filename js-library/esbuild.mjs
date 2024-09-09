@@ -9,8 +9,10 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
+const PACKAGE_JSON = "package.json";
+
 const readPackageJson = () => {
-  const packageJson = join(process.cwd(), "package.json");
+  const packageJson = join(process.cwd(), PACKAGE_JSON);
   const json = readFileSync(packageJson, "utf8");
   const { peerDependencies, files } = JSON.parse(json);
   return {
@@ -64,6 +66,8 @@ const copyFiles = () => {
     copyFileSync(join(process.cwd(), filename), join(dist, filename));
 
   packageJsonFiles.filter((entry) => !entry.includes("*")).forEach(copyFile);
+
+  copyFile(PACKAGE_JSON);
 };
 
 const build = () => {

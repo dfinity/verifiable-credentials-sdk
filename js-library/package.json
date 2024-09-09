@@ -5,7 +5,6 @@
   "type": "module",
   "files": [
     "README.md",
-    "package.json",
     "LICENSE",
     "*.js",
     "*.js.map",
