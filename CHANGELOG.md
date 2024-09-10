@@ -6,7 +6,7 @@ Changes in the upcoming versions.
 
 ## Improvements
 
-# release-2024-09-03
+# release-2024-09-10
 
 ## Breaking Changes
 
