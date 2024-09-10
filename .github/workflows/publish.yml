@@ -30,6 +30,6 @@ jobs:
 
       - name: Publish
         working-directory: ${{env.dist-directory}}
-        run: ./scripts/publish-npm.sh
+        run: ../scripts/publish-npm.sh
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
