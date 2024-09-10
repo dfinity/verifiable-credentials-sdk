@@ -1,0 +1,32 @@
+name: Prepare
+
+description: Checkout, install dependencies, build and test JS library
+
+inputs:
+  folder:
+    description: 'The folder in which to run npm ci'
+    required: false
+    default: '.'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+      working-directory: ${{ inputs.folder }}
+
+    - name: Build
+      shell: bash
+      run: npm run build
+      working-directory: ${{ inputs.folder }}
+
+    - name: Test
+      shell: bash
+      run: npm run test
+      working-directory: ${{ inputs.folder }}
