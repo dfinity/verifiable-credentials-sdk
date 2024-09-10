@@ -13,6 +13,7 @@ Changes in the upcoming versions.
 ## Improvements
 
 - Update dependency versions.
+- Fix importing js-library in Webpack projects.
 
 # release-2024-07-01
 
