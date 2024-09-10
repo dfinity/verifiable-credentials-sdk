@@ -6,10 +6,10 @@
   "files": [
     "README.md",
     "LICENSE",
-    "*.js",
-    "*.js.map",
-    "*.d.ts",
-    "*.d.ts.map"
+    "**/*.js",
+    "**/*.js.map",
+    "**/*.d.ts",
+    "**/*.d.ts.map"
   ],
   "engines": {
     "node": ">=v20.11.1"
