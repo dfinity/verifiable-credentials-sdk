@@ -16,7 +16,7 @@ homepage = "https://github.com/dfinity/verifiable-credentials-sdk#readme"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-base64 = "0.21"
+base64 = "0.22"
 sha2 = "0.10"
 lazy_static = "1.4"
 serde_cbor = "0.11"
