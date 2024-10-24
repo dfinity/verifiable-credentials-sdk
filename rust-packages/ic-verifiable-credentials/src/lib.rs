@@ -748,7 +748,6 @@ mod tests {
     use ic_canister_sig_creation::{
         extract_raw_root_pk_from_der, IC_ROOT_PK_DER, IC_ROOT_PK_DER_PREFIX,
     };
-    use identity_core::common::Url;
     use std::collections::HashMap;
 
     const MINUTE_NS: u128 = 60 * 1_000_000_000;
@@ -787,7 +786,7 @@ mod tests {
 
     fn test_time() -> Timestamp {
         Timestamp::from_unix(
-            Duration::from_nanos(CURRENT_TIME_BEFORE_EXPIRY_NS as u64).as_secs() as i64,
+            Duration::from_nanos(ALIAS_CURRENT_TIME_BEFORE_EXPIRY_NS as u64).as_secs() as i64,
         )
         .unwrap()
     }
