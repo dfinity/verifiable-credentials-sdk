@@ -745,7 +745,10 @@ mod tests {
     use super::*;
     use crate::issuer_api::ArgumentValue;
     use assert_matches::assert_matches;
-    use ic_canister_sig_creation::{extract_raw_root_pk_from_der, IC_ROOT_PK_DER_PREFIX};
+    use ic_canister_sig_creation::{
+        extract_raw_root_pk_from_der, IC_ROOT_PK_DER, IC_ROOT_PK_DER_PREFIX,
+    };
+    use identity_core::common::Url;
     use std::collections::HashMap;
 
     const MINUTE_NS: u128 = 60 * 1_000_000_000;
@@ -763,23 +766,22 @@ mod tests {
 
     // Created in a mainnet environment
     // ID_ALIAS credential pieces
-    const ALIAS_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFBQUFBQUVCN2ZMb3hfUUJraHpseExERE94Tk1iZW5fd19yRGVNSy1kQUt4RGRpcll5QSJ9LCJraWQiOiJkaWQ6aWNwOnJ3bGd0LWlpYWFhLWFhYWFhLWFhYWFhLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE2MjAzMjk1MzAsImlzcyI6Imh0dHBzOi8vaWRlbnRpdHkuaWMwLmFwcC8iLCJuYmYiOjE2MjAzMjg2MzAsImp0aSI6ImRhdGE6dGV4dC9wbGFpbjtjaGFyc2V0PVVURi04LHRpbWVzdGFtcF9uczoxNjIwMzI4NjMwMDAwMDAwMDAwLGFsaWFzX2hhc2g6YjIwYjJhMGQ3MGExZWZjZGVmZWYwNGExYmY4YjMwOTVkMmJhNDIzYWM0ZDI1MzY3ZjI1YTkyZjNjYTc3NDY4NSIsInN1YiI6ImRpZDppY3A6bjZjbmktcGE0amctaHdheWQtcXlhbXUtNWU1bmYtbHlkcTctcnN1YnQtdmZ2eHYtb3Q0ejMtbnZ4NnEtZmFlIiwidmMiOnsiQGNvbnRleHQiOiJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSIsInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyI6eyJoYXNJZEFsaWFzIjoiZGF0ZXctZGp4eWQteXF1enYtZjRhazUtamZ0d3EtNHJ5ZW8tdXpldzYtNDc0bm0taW5neG8tMmlveHUtNGFlIn19fX0.2dn3omtjZXJ0aWZpY2F0ZVkBsdnZ96JkdHJlZYMBgwGDAYMCSGNhbmlzdGVygwGDAkoAAAAAAAAAAAEBgwGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1ggFdNWmGHa91EhiMxR0EKhKjvqyJ4dHR86sWNM7VOOeoGCBFgg0sz_P8xdqTDewOhKJUHmWFFrS7FQHnDotBDmmGoFfWCCBFgg_KZ0TVqubo_EGWoMUPA35BYZ4B5ZRkR_zDfNIQCwa46CBFggDxSoL5vzjhHDgnrdmgRhclanMmjjpWYL41-us6gEU6mCBFggXAzCWvb9h4qsVs41IUJBABzjSqAZ8DIzF_ghGHpGmHGCBFggkSLnf3jYhPk65LUQsbOYiY0865rVZ_oGp9dgdQUI4zyCBFgg1DPpoHCCNK_LriesDVYlyoELR3hdXKdRfBLgOtNMuDqDAYIEWCA1U_ZYHVOz3Sdkb2HIsNoLDDiBuFfG3DxH6miIwRPra4MCRHRpbWWCA0mAuK7U3YmkvhZpc2lnbmF0dXJlWDCLSH_C_yh8NAElCHNRow7HVmn54FwWH2XKLlSTJlV7fWrcwOn0fUbtK9d5kkl9qBBkdHJlZYMBggRYIOGnlc_3yXPTVrEJ1p3dKX5HxkMOziUnpA1HeXiQW4O8gwJDc2lngwJYINga350VgbIt7J_tUkjxMijAfGnQAzfpL0LK-FNuYswHgwGDAlggKKAoHHmtclkvybvAtkqZyuyA-2IwxSm_PeIejRWVZjGCA0CCBFggHSycl7DEAOARm38YMr9aY5NWJYpzg2U8V9isy2zgccQ";
+    const ALIAS_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFHQUFKd0VCMWROcEZhMjNYSHVienc2YlA3MUVTb20yTFFwcUhmWjVhazdOWGRqeFdVQSJ9LCJraWQiOiJkaWQ6aWNwOmZndGU1LWNpYWFhLWFhYWFkLWFhYXRxLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE3Mjk3NTgzNTksImlzcyI6Imh0dHBzOi8vaWRlbnRpdHkuaWMwLmFwcC8iLCJuYmYiOjE3Mjk3NTc0NTksImp0aSI6ImRhdGE6dGV4dC9wbGFpbjtjaGFyc2V0PVVURi04LHRpbWVzdGFtcF9uczoxNzI5NzU3NDU5MDQyODQ0NzkyLGFsaWFzX2hhc2g6ZDQ4OTIwM2EwOGExY2Q0N2YxY2QyOWVkZDEwODdhNTIxOWJhMDc2NzM4ZmUwYWU1YWUzOWNjZDlmMTFhNzUzMyIsInN1YiI6ImRpZDppY3A6N2Vib2ktdHl1eXMtYXFtNGMtdzJsN2ktdmd1Y20teHZhd3gtbGVtengtNmtxMmctZjUzdTcteXZmaDItbmFlIiwidmMiOnsiQGNvbnRleHQiOiJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSIsInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyI6eyJoYXNJZEFsaWFzIjoiemo3ZmgtajNjZ3YtZW9qZHItaDU1aGEtNG82N3ItMzJ1dHUtMjJpdjItbzdoaHktM3lvb3QteGRjcmYtNXFlIiwiZGVyaXZhdGlvbk9yaWdpbiI6Imh0dHBzOi8vbDdydWEtcmFhYWEtYWFhYXAtYWhoNmEtY2FpLmljMC5hcHAifX19fQ.2dn3omtjZXJ0aWZpY2F0ZVkFbdnZ96NkdHJlZYMBgwGDAYIEWCCmWvo44iQiiGOonrtzz-Vc-cC15sj4dWw5iM14OXZei4MCSGNhbmlzdGVygwGDAYMBgwGDAYMBggRYIAIQTI4tvDRgL5ohfUDFZTkN99yxeUcFSZEPNIUMKZIVgwGCBFggQEL7KETbIG4XJKJI7vOT9csdIigPKY2Uj8GOCkCFM0ODAYIEWCCNPbxbGsgH608xO5FxLblP30pQBoIHcZ8cujd3GyrI74MCSgAAAAAAYAAnAQGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1ggK94e042ibWRcCDatgNq7FbfQvmk6k_gEnuLRHVktoaWCBFggbM1rsxpUdh1KVunP2MujhNW4-0cYToyhPLcOBPIgms6CBFggJxQXULs1dQvHYawdYMxqLUmGQD8B1du-ha8XhgEfBPSCBFggPeeB3ggR9ahGkWbFlPlDPZZvaG9PQGWtk5XjC_rBU-KCBFggyyqUBXAErjNvtSujkRfPkKqt7-At3-kgW8wTyPYVCgKCBFggvB-bTFT2brj8JTgekGQa5Z74fFkBhjVRYqUstIdSQsuCBFggb8yhZG3SMgMK91m93LVVhLWbI-8p3BVCgObtABGjCHeCBFgg9_rtUWU57ZbqOhjuhW_K5PePAOkqbSsD8qC8yNYyjP6CBFggJAf5RCyKZ6eeRpJCfSKCI65TMIwLHHJK8yOXVBNXs_KDAYIEWCDSNFYEA4p6QwQAd18Nc6Jp25bkaCmmZeMHfTuH_iQdnoMCRHRpbWWCA0n4gNPu6KfVgBhpc2lnbmF0dXJlWDCS57wG5PXgM1EPsxX76Z9YUWSD98WNfz65NnZBZoXGmyBFazFCFS9l7dT2602nOy5qZGVsZWdhdGlvbqJpc3VibmV0X2lkWB0sVbNH7PJobIN4HWxZ0bQ-e0y6jetsGzdhB_LNAmtjZXJ0aWZpY2F0ZVkClNnZ96JkdHJlZYMBggRYIMn7ubxmVJ-rn7nj6UC7uIZSpjd9DZIZQkBUqkfLmjUggwGDAYIEWCBYlr0e6vPqPOEgzNI1ULovxaF5f0mqIr0kZk0gGA3mj4MCRnN1Ym5ldIMBgwGDAYMBggRYIIc5-77dPe2qj-9BhwNnwJBb3jdrY9034rF2-wi1ggUvgwGCBFggg_I0Z_VeOyicnsbKOf6cAu9lvR5u1cEYZsKqvna-qnaDAYMCWB0sVbNH7PJobIN4HWxZ0bQ-e0y6jetsGzdhB_LNAoMBgwJPY2FuaXN0ZXJfcmFuZ2VzggNYMtnZ94KCSgAAAAAAYAAAAQFKAAAAAABgAK4BAYJKAAAAAABgALABAUoAAAAAAG___wEBgwJKcHVibGljX2tleYIDWIUwgYIwHQYNKwYBBAGC3HwFAwECAQYMKwYBBAGC3HwFAwIBA2EAkAdRIHeOshpTCgK8x2Pn9KGSkzUGlmr3tUwQpNKyTeaoayAONEC65iZ79MSI2aEdBHLDjBtiIRmPmOTmiCujilpOOqWvzombf4Je2VrfoSYpaIBzVW8nR1JyE-jXPkDOggRYIDbzzSV9kPs45CWX8ZOl4DHb1YW2KSeTuwTbR5SAPOBuggRYIIj-oNtp84-c8_uoj4oEDzytya53cvoaQGpupGT6hYueggRYIGlh7xN8Ku4LBGcILvbTwSwD6TATtgKky2IUJw5ISGPxggRYIH4XYSU8iq7e4e1D2Iu1vaYwwPH4nnQKa88RkZ8eDR8LgwJEdGltZYIDScO7z9Hp8ZuAGGlzaWduYXR1cmVYMJSfsuzf0IsuGWBkZnOkzxXFhJHg30mRgqLNMxQLgcKrygFQuYg2iR4BecwAja35ZmR0cmVlgwGCBFggY_VDRlzjs-wNRdGdOHAK2Qfbt6qCiMuZ0VxLk2vfbziDAkNzaWeDAYIEWCAMbgXnP8FSPBVYUcL1bvbtHEYgLUFzvvhw-QR-UW6Uv4MCWCDz48dIHnkz9PyXWqYC1lBlRQSCFT7a2tJpWgMWbvMOoIMBgwJYID1jLiMLV5LdNLLULW3ax_err0pz6iJJUhe8uBMAiqzdggNAggRYIOIQ-FDH9cCtWre7kxNlvAKzOyNp6vymkVPgsJzxl6ve";
     const ALIAS_ID_PRINCIPAL: &str =
-        "datew-djxyd-yquzv-f4ak5-jftwq-4ryeo-uzew6-474nm-ingxo-2ioxu-4ae";
+        "zj7fh-j3cgv-eojdr-h55ha-4o67r-32utu-22iv2-o7hhy-3yoot-xdcrf-5qe";
     const ALIAS_DAPP_PRINCIPAL: &str =
-        "n6cni-pa4jg-hwayd-qyamu-5e5nf-lydq7-rsubt-vfvxv-ot4z3-nvx6q-fae";
-    const ALIAS_EXPIRY_NS: u128 = 1620329530 * 1_000_000_000; // from ID_ALIAS_CREDENTIAL_JWS
+        "7eboi-tyuys-aqm4c-w2l7i-vgucm-xvawx-lemzx-6kq2g-f53u7-yvfh2-nae";
+    const ALIAS_EXPIRY_NS: u128 = 1729758359 * 1_000_000_000; // from ID_ALIAS_CREDENTIAL_JWS
     const ALIAS_CURRENT_TIME_AFTER_EXPIRY_NS: u128 = ALIAS_EXPIRY_NS + MINUTE_NS;
     const ALIAS_CURRENT_TIME_BEFORE_EXPIRY_NS: u128 = ALIAS_EXPIRY_NS - MINUTE_NS;
     // Verifiable Presentation pieces
-    const ISSUER_URL: &str = "https://age_verifier.info/";
-    const RP_DERIVATION_ORIGIN: &str = "https://l7rua-raaaa-aaaap-ahh6a-cai.icp0.io/";
-    const VP_ID_ALIAS: &str = "jkk22-zqdxc-kgpez-6sv2m-5pby4-wi4t2-prmoq-gf2ih-i2qtc-v37ac-5ae";
-    const VP_RP_ID: &str = "p2nlc-3s5ul-lcu74-t6pn2-ui5im-i4a5f-a4tga-e6znf-tnvlh-wkmjs-dqe";
-    const VP_ID_ALIAS_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFBQUFBQUVCMGd6TTVJeXFMYUhyMDhtQTRWd2J5SmRxQTFyRVFUX2xNQnVVbmN5UDVVYyJ9LCJraWQiOiJkaWQ6aWNwOnJ3bGd0LWlpYWFhLWFhYWFhLWFhYWFhLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE2MjAzMjk1MzAsImlzcyI6Imh0dHBzOi8vaWRlbnRpdHkuaWMwLmFwcC8iLCJuYmYiOjE2MjAzMjg2MzAsImp0aSI6ImRhdGE6dGV4dC9wbGFpbjtjaGFyc2V0PVVURi04LHRpbWVzdGFtcF9uczoxNjIwMzI4NjMwMDAwMDAwMDAwLGFsaWFzX2hhc2g6NThiYzcxMmYyMjFhOTJmMGE5OTRhZDZmN2JmOWVjNjc0MzBmMGFkMzNmYWVlZDAzZmUzZDU2NTYyMTliMjQ2MiIsInN1YiI6ImRpZDppY3A6cDJubGMtM3M1dWwtbGN1NzQtdDZwbjItdWk1aW0taTRhNWYtYTR0Z2EtZTZ6bmYtdG52bGgtd2ttanMtZHFlIiwidmMiOnsiQGNvbnRleHQiOiJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSIsInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyI6eyJoYXNJZEFsaWFzIjoiamtrMjItenFkeGMta2dwZXotNnN2Mm0tNXBieTQtd2k0dDItcHJtb3EtZ2YyaWgtaTJxdGMtdjM3YWMtNWFlIn19fX0.2dn3omtjZXJ0aWZpY2F0ZVkBsdnZ96JkdHJlZYMBgwGDAYMCSGNhbmlzdGVygwGDAkoAAAAAAAAAAAEBgwGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1ggvlJBTZDgK1_9Vb3-18dWKIfy28WTjZ1YqdjFWWAIX96CBFgg0sz_P8xdqTDewOhKJUHmWFFrS7FQHnDotBDmmGoFfWCCBFgg_KZ0TVqubo_EGWoMUPA35BYZ4B5ZRkR_zDfNIQCwa46CBFggDxSoL5vzjhHDgnrdmgRhclanMmjjpWYL41-us6gEU6mCBFggXAzCWvb9h4qsVs41IUJBABzjSqAZ8DIzF_ghGHpGmHGCBFggRbE3sOaqi_9kL-Uz1Kmf_pCWt4FSRaHU9KLSFTT3eceCBFggQERIfN1eHBUYfQr2fOyI_nTKHS71uqu-wOAdYwqyUX-DAYIEWCA1U_ZYHVOz3Sdkb2HIsNoLDDiBuFfG3DxH6miIwRPra4MCRHRpbWWCA0mAuK7U3YmkvhZpc2lnbmF0dXJlWDCm_9R-rt9zbE2eP_WbCyFqO7txO86wNfBS1lyyJJ6gxy1D2Wnw5kNo2XUKUBmu9q5kdHJlZYMBggRYIOGnlc_3yXPTVrEJ1p3dKX5HxkMOziUnpA1HeXiQW4O8gwJDc2lngwJYIIOQR7wl3Ws9Jb8VP4rhIb37XKLMkkZ2P7WaZ5we60WGgwGDAlgg3DSOKS3cc99bdJqFjiOcs13PNpGSR8_5-UJsP23Ud0KCA0CCBFgg6wJlRmEtuY-LCp6ieeEdd6tO8_Hlct7H8VrW9DH7EaI";
-    const VP_VC_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFBQUFBUUVCOEVpSWoyNkJxRWhic2ZQUW44TF9CNDJxc0JOeUdiT3ZLdlNENE9OUGhsSSJ9LCJraWQiOiJkaWQ6aWNwOnJya2FoLWZxYWFhLWFhYWFhLWFhYWFxLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE2MjAzMjk1MzAsImlzcyI6Imh0dHBzOi8vYWdlX3ZlcmlmaWVyLmluZm8vIiwibmJmIjoxNjIwMzI4NjMwLCJqdGkiOiJodHRwczovL2FnZV92ZXJpZmllci5pbmZvL2NyZWRlbnRpYWxzLzQyIiwic3ViIjoiZGlkOmljcDpqa2syMi16cWR4Yy1rZ3Blei02c3YybS01cGJ5NC13aTR0Mi1wcm1vcS1nZjJpaC1pMnF0Yy12MzdhYy01YWUiLCJ2YyI6eyJAY29udGV4dCI6Imh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIiwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIlZlcmlmaWVkQWR1bHQiXSwiY3JlZGVudGlhbFN1YmplY3QiOnsiVmVyaWZpZWRBZHVsdCI6eyJtaW5BZ2UiOjE4fX19fQ.2dn3omtjZXJ0aWZpY2F0ZVkBsdnZ96JkdHJlZYMBgwGDAYMCSGNhbmlzdGVygwGCBFggOnw-lESEpV-y1s0Lh9p1aY-XfYKBYzyHL_fmcTqp6PeDAkoAAAAAAAAAAQEBgwGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1ggO8I7YzRNmk_XVakRhuaOq1rdEj3vhLFt07YEWKwrfBSCBFgg0sz_P8xdqTDewOhKJUHmWFFrS7FQHnDotBDmmGoFfWCCBFggsN7BWldXUVrLUx_990beUdGHvTn5XEjFcgTxb8oXZZCCBFggNtRXohqxK3P8d6uyzQLSdJLBe5kv-Ng0gEHSR-OUmryCBFggiOn-4gDlCnp9jkq0VFtcJQPETxg1HnHwdHOddTpIlzWCBFggjFoCQNnMC4FEG3e2zATPdOyzWTcfRqu16bVgC18EQiCDAYIEWCA1U_ZYHVOz3Sdkb2HIsNoLDDiBuFfG3DxH6miIwRPra4MCRHRpbWWCA0mAuK7U3YmkvhZpc2lnbmF0dXJlWDCrcgY2ne3OillJ6fz8uv6dhCykfT-u0ZSKyvXZVYS1zOtRCMOSYZju2k-LERBCmLNkdHJlZYMBggRYIJIlUxoU2qt4aTwzz90fB43OK9EFDzVls4N8OHepeuLpgwJDc2lngwJYIKhCHifwHS5DiNAL6bducWQ2AShCc2bN-TzPsBEl3ov2gwGCBFggCr5Roa_ACiP36lIIHDtA47bq8L7C_nH3Z0GGJrLnE6uDAYMCWCCzsKpLUCoF4k5X0pGLjWSca9QaCMj6-oXkkFtUO7kYtoIDQIIEWCBrqYIFsKJT6MmiyQ79ksiXynSLIxl4HdOrpgsXm4TVBw";
-    const VP_ANOTHER_VC_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFBQUFBUUVCOEVpSWoyNkJxRWhic2ZQUW44TF9CNDJxc0JOeUdiT3ZLdlNENE9OUGhsSSJ9LCJraWQiOiJkaWQ6aWNwOnJya2FoLWZxYWFhLWFhYWFhLWFhYWFxLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE2MjAzMjk1MzAsImlzcyI6Imh0dHBzOi8vZW1wbG95bWVudC5pbmZvLyIsIm5iZiI6MTYyMDMyODYzMCwianRpIjoiaHR0cHM6Ly9lbXBsb3ltZW50LmluZm8vY3JlZGVudGlhbHMvNDIiLCJzdWIiOiJkaWQ6aWNwOmprazIyLXpxZHhjLWtncGV6LTZzdjJtLTVwYnk0LXdpNHQyLXBybW9xLWdmMmloLWkycXRjLXYzN2FjLTVhZSIsInZjIjp7IkBjb250ZXh0IjoiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiVmVyaWZpZWRFbXBsb3llZSJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJWZXJpZmllZEVtcGxveWVlIjp7ImVtcGxveWVyTmFtZSI6IkRGSU5JVFkgRm91bmRhdGlvbiJ9fX19.2dn3omtjZXJ0aWZpY2F0ZVkBsdnZ96JkdHJlZYMBgwGDAYMCSGNhbmlzdGVygwGCBFggOnw-lESEpV-y1s0Lh9p1aY-XfYKBYzyHL_fmcTqp6PeDAkoAAAAAAAAAAQEBgwGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1ggRugFe6Ck7NbMysgwHrks4lNkVUqkKsicdx67D59fgr-CBFgg0sz_P8xdqTDewOhKJUHmWFFrS7FQHnDotBDmmGoFfWCCBFggsN7BWldXUVrLUx_990beUdGHvTn5XEjFcgTxb8oXZZCCBFggNtRXohqxK3P8d6uyzQLSdJLBe5kv-Ng0gEHSR-OUmryCBFggYufTG35dpmNH5pv3wq__HC7kJTW1cCcRWSdFQ__KV0-CBFggon3xKa1joPZ19Djixh8oDlBboiMi5lmgnM1HKeyZ4siDAYIEWCA1U_ZYHVOz3Sdkb2HIsNoLDDiBuFfG3DxH6miIwRPra4MCRHRpbWWCA0mAuK7U3YmkvhZpc2lnbmF0dXJlWDCGPK8MNU0Mc5oSLu9IKas2ASm40jNnz_iCOP3IByDW8AqG6cfRU9ZGP4IrFg9ECKhkdHJlZYMBggRYIJIlUxoU2qt4aTwzz90fB43OK9EFDzVls4N8OHepeuLpgwJDc2lngwJYIKhCHifwHS5DiNAL6bducWQ2AShCc2bN-TzPsBEl3ov2gwJYINHB_8EbKcY_Lfj5XYVCaN8msEm9ABXR6E3wqY7msxqrggNA";
-    const VP_EXPIRY_NS: u128 = 1620329530 * 1_000_000_000; // from ID_ALIAS_CREDENTIAL_JWS
+    const ISSUER_URL: &str = "https://dummy-issuer.vc/";
+    const RP_DERIVATION_ORIGIN: &str = "https://l7rua-raaaa-aaaap-ahh6a-cai.ic0.app";
+    const VP_ID_ALIAS: &str = "7irwo-r5t2f-454sx-mkymz-ewrsg-o6oba-ol5jw-2wpns-yoxpi-5uego-vqe";
+    const VP_RP_ID: &str = "7eboi-tyuys-aqm4c-w2l7i-vgucm-xvawx-lemzx-6kq2g-f53u7-yvfh2-nae";
+    const VP_ID_ALIAS_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFHQUFKd0VCXzFBQ2lleTUwd0VkZERTbUkwcU9WLXRZR1JPaHo1TFByMnR1em4wSmJPayJ9LCJraWQiOiJkaWQ6aWNwOmZndGU1LWNpYWFhLWFhYWFkLWFhYXRxLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE3Mjk3NTg0MTcsImlzcyI6Imh0dHBzOi8vaWRlbnRpdHkuaWMwLmFwcC8iLCJuYmYiOjE3Mjk3NTc1MTcsImp0aSI6ImRhdGE6dGV4dC9wbGFpbjtjaGFyc2V0PVVURi04LHRpbWVzdGFtcF9uczoxNzI5NzU3NTE3MjYyMDYyMzA1LGFsaWFzX2hhc2g6ZGY4ZjkwOTk0NGQ1MjhhMWQ2ODYwOTFiZTM5YWQwNzUyMjEzYWJhMWQ0MDY2ZWJjZDg3ZDNlNmMzYmVkOTlkZCIsInN1YiI6ImRpZDppY3A6N2Vib2ktdHl1eXMtYXFtNGMtdzJsN2ktdmd1Y20teHZhd3gtbGVtengtNmtxMmctZjUzdTcteXZmaDItbmFlIiwidmMiOnsiQGNvbnRleHQiOiJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSIsInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyI6eyJkZXJpdmF0aW9uT3JpZ2luIjoiaHR0cHM6Ly9sN3J1YS1yYWFhYS1hYWFhcC1haGg2YS1jYWkuaWMwLmFwcCIsImhhc0lkQWxpYXMiOiI3aXJ3by1yNXQyZi00NTRzeC1ta3ltei1ld3JzZy1vNm9iYS1vbDVqdy0yd3Bucy15b3hwaS01dWVnby12cWUifX19fQ.2dn3omtjZXJ0aWZpY2F0ZVkFbdnZ96NkdHJlZYMBgwGDAYIEWCCmWvo44iQiiGOonrtzz-Vc-cC15sj4dWw5iM14OXZei4MCSGNhbmlzdGVygwGDAYMBgwGDAYMBggRYIAIQTI4tvDRgL5ohfUDFZTkN99yxeUcFSZEPNIUMKZIVgwGCBFggQEL7KETbIG4XJKJI7vOT9csdIigPKY2Uj8GOCkCFM0ODAYIEWCCNPbxbGsgH608xO5FxLblP30pQBoIHcZ8cujd3GyrI74MCSgAAAAAAYAAnAQGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1gg-MJWWQNUavYDofzwqvq-zNimXmetUcqB-w0LrNC_sYeCBFggbM1rsxpUdh1KVunP2MujhNW4-0cYToyhPLcOBPIgms6CBFggJxQXULs1dQvHYawdYMxqLUmGQD8B1du-ha8XhgEfBPSCBFggPeeB3ggR9ahGkWbFlPlDPZZvaG9PQGWtk5XjC_rBU-KCBFggyyqUBXAErjNvtSujkRfPkKqt7-At3-kgW8wTyPYVCgKCBFggvB-bTFT2brj8JTgekGQa5Z74fFkBhjVRYqUstIdSQsuCBFggb8yhZG3SMgMK91m93LVVhLWbI-8p3BVCgObtABGjCHeCBFgg9_rtUWU57ZbqOhjuhW_K5PePAOkqbSsD8qC8yNYyjP6CBFgg8py_vRzM9Bm27F6IyXzWJiXqXDYZ8jfITu7XsaCfLl2DAYIEWCBXFcGPEL9l1azWEHFo-ZfuWXq0Pfy08LD-ps3EjLmQ-YMCRHRpbWWCA0mnt6Cnw6nVgBhpc2lnbmF0dXJlWDCR1BHhBERls_WaxgULheuhLoNs5bbFDw7QiyiIGuxRaUBlRfAp8u91seVbpVkoJYNqZGVsZWdhdGlvbqJpc3VibmV0X2lkWB0sVbNH7PJobIN4HWxZ0bQ-e0y6jetsGzdhB_LNAmtjZXJ0aWZpY2F0ZVkClNnZ96JkdHJlZYMBggRYIMn7ubxmVJ-rn7nj6UC7uIZSpjd9DZIZQkBUqkfLmjUggwGDAYIEWCBYlr0e6vPqPOEgzNI1ULovxaF5f0mqIr0kZk0gGA3mj4MCRnN1Ym5ldIMBgwGDAYMBggRYIIc5-77dPe2qj-9BhwNnwJBb3jdrY9034rF2-wi1ggUvgwGCBFggg_I0Z_VeOyicnsbKOf6cAu9lvR5u1cEYZsKqvna-qnaDAYMCWB0sVbNH7PJobIN4HWxZ0bQ-e0y6jetsGzdhB_LNAoMBgwJPY2FuaXN0ZXJfcmFuZ2VzggNYMtnZ94KCSgAAAAAAYAAAAQFKAAAAAABgAK4BAYJKAAAAAABgALABAUoAAAAAAG___wEBgwJKcHVibGljX2tleYIDWIUwgYIwHQYNKwYBBAGC3HwFAwECAQYMKwYBBAGC3HwFAwIBA2EAkAdRIHeOshpTCgK8x2Pn9KGSkzUGlmr3tUwQpNKyTeaoayAONEC65iZ79MSI2aEdBHLDjBtiIRmPmOTmiCujilpOOqWvzombf4Je2VrfoSYpaIBzVW8nR1JyE-jXPkDOggRYIDbzzSV9kPs45CWX8ZOl4DHb1YW2KSeTuwTbR5SAPOBuggRYIIj-oNtp84-c8_uoj4oEDzytya53cvoaQGpupGT6hYueggRYIGlh7xN8Ku4LBGcILvbTwSwD6TATtgKky2IUJw5ISGPxggRYIH4XYSU8iq7e4e1D2Iu1vaYwwPH4nnQKa88RkZ8eDR8LgwJEdGltZYIDScO7z9Hp8ZuAGGlzaWduYXR1cmVYMJSfsuzf0IsuGWBkZnOkzxXFhJHg30mRgqLNMxQLgcKrygFQuYg2iR4BecwAja35ZmR0cmVlgwGCBFggY_VDRlzjs-wNRdGdOHAK2Qfbt6qCiMuZ0VxLk2vfbziDAkNzaWeDAYIEWCA9UHBJbHOr-E1JQlly9iFGQCsTYLyd9lD3QCqcqJRFnYMBgwJYINuSM7LpfR2lCwBy0b3st88K7FYqd13Q3uK_YsH5ggu7gwGDAlggPolR0pCAtERu83fvIuzIlLuhfQ8f5M5AIY492yiyQFmCA0CCBFggeLEHcUhq_M_QAshlwqu4hNd_W7ubAKyWtRM2bcorZ-KCBFggZVFrcgHpS48RZ-Hq0IuPRUSEcVeZzcHNNAQ0Xm4QZu8";
+    const VP_VC_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFlQTZRUUVCbm9vVTJ5Mmg5OGRtLXFBcnJsX1BVUXRERWJpMURCOVRNUHNscGlfZ2VsZyJ9LCJraWQiOiJkaWQ6aWNwOnFkaWlmLTJpYWFhLWFhYWFwLWFoamFxLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE3Mjk3NTg0MjEsImlzcyI6Imh0dHBzOi8vZHVtbXktaXNzdWVyLnZjLyIsIm5iZiI6MTcyOTc1NzUyMSwianRpIjoiZGF0YTp0ZXh0L3BsYWluO2NoYXJzZXQ9VVRGLTgsaXNzdWVyOmh0dHBzOi8vZHVtbXktaXNzdWVyLnZjLHRpbWVzdGFtcF9uczoxNzI5NzU3NTIxNTYxMjQ5NDYxLHN1YmplY3Q6N2lyd28tcjV0MmYtNDU0c3gtbWt5bXotZXdyc2ctbzZvYmEtb2w1anctMndwbnMteW94cGktNXVlZ28tdnFlIiwic3ViIjoiZGlkOmljcDo3aXJ3by1yNXQyZi00NTRzeC1ta3ltei1ld3JzZy1vNm9iYS1vbDVqdy0yd3Bucy15b3hwaS01dWVnby12cWUiLCJ2YyI6eyJAY29udGV4dCI6Imh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIiwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIlRlc3QiXSwiY3JlZGVudGlhbFN1YmplY3QiOnsiVGVzdCI6eyJvbmUiOiJhcmcifX19fQ.2dn3omtjZXJ0aWZpY2F0ZVkGYNnZ96NkdHJlZYMBgwGDAYIEWCCmWvo44iQiiGOonrtzz-Vc-cC15sj4dWw5iM14OXZei4MCSGNhbmlzdGVygwGDAYIEWCB7iIkd6OMv3l8FvDYrPPRf40oKIINuEOMMCh1dNiNsoYMBggRYIFZdHl_2XSlbf_gK9xI4plYBg_HNvsuIcj0aC6U24yKKgwGCBFggqh1AxVnNJYrl9iubozBfBx4at5nZ1zLVW9-eQ5uKNRqDAYMBgwGCBFggzXSra1qZIgamCo1xqb1tQwNv_sBsdRNT5fXvXXG2w2qDAYIEWCCJLep1ardYpzTYQ0WZ8GlQ9GHwROEAhgz2A6fvpieny4MBgwGDAYIEWCDqG7W3yWGUsBUqwVbTDLwI4AQZ2jd0hKqRoGWIGj4SS4MBggRYIKf-fCBA3z7O7cree82myYt4L79UgWaLeFbDQGAzVmpWgwGCBFggfQ158wn1kzlfglkz8C7EnB0LecwVg19ll66tbyyUaSWDAYMBgwJKAAAAAAHgOkEBAYMBgwGDAk5jZXJ0aWZpZWRfZGF0YYIDWCAPzGwYY7CuRUBmO7vHYhfwL3-3sfPDbKG0t315wCvlN4IEWCCuSzlohUja0dr-O5mt3TV1TQ9FWXLlWIUZqsQEOgFfEYIEWCAJbqUoiDNS0mnzLg688iSz83zRYO4Bbqs-81lxOEXd_4IEWCD-ibIPzR0HeXg53bWZTaev-U5Ji9a2uxix3uw-DOUoboIEWCA-mUrRA565PinuauC9TMsxvi1I4Sk3dcGlw-qVWHTYY4IEWCB3ZkdTLr39xQzfdi45JKorZxgMBHMTBa5ykTqWU9mUMIIEWCC7fBbv0A8-HnKoWK8_xOcOvY4qVaMyLVaSvwewO6dShYIEWCByF4_R1jGX-1yIZ3Ejk5gT7fJbuK-hqXUMikRsfsdiWoIEWCAVCa22l1lP6Bzi_YZ8_VR_wrY61VjgVko6FQraSKXHyIIEWCAczYwBD93TEZOzGOnu6xBfWY3dNVIkxjiK3F_b6gF6T4IEWCCuw-CNxZLiXJ7dvBm-mYkslLR0-yRJNZalq7cQVVwvJ4MBggRYIAAFKTZc0hfDrM93AqJN5wyH-Lrsj_gpx0U0U5nenE_3gwJEdGltZYIDSf2r_8HTqdWAGGlzaWduYXR1cmVYMKKEmaPn7TIrYslnLKo8OTX3yzCF3Krb6EZS37BcwEvcTIxZM35Ev-EjHTMAKYeqqmpkZWxlZ2F0aW9uomlzdWJuZXRfaWRYHZNlqMnyf0EwYIUINdGFmkFcZ1dc0wwEoYP9CWMCa2NlcnRpZmljYXRlWQJ92dn3omR0cmVlgwGCBFggcRdzGWZnTQ5A8-lF0d5DPi3_5f7PJ0KZwD3Xv-NNczqDAYMBggRYIGu6ttvuGMo7I1jUvI7-B3GVagaeqLQRiLIvL0_wloEfgwJGc3VibmV0gwGDAYIEWCC4S7dwYkrBdIen5iHdcRbw-AzYvBMkC9Y6yPRmP1_yUIMBgwGCBFggZU8iKg13hclAa0zDCXDq5KxOmSGRqiCXAFoxWUis6duDAYIEWCDICaL3HEg2eeoIP8o9pYN94pBt4HMVnHZrQ5Y-nu7qaIMBggRYIJbo23yaKDJu6we2Bfu4YIRYtg6mBWqOF-MXxgX0gOwpgwJYHZNlqMnyf0EwYIUINdGFmkFcZ1dc0wwEoYP9CWMCgwGDAk9jYW5pc3Rlcl9yYW5nZXOCA1gb2dn3gYJKAAAAAAHgAAABAUoAAAAAAe___wEBgwJKcHVibGljX2tleYIDWIUwgYIwHQYNKwYBBAGC3HwFAwECAQYMKwYBBAGC3HwFAwIBA2EAipGyOwmK633V5SVxfwwp05Z8X05h0LXHxpcXLm9WgqpeQj1CB3aVxRerp-O2NtqUCTjX1cru4mw8ccxoiPVCxZZuYOpNkd25WtCZQoMXEJfjJQJr7wAxKLRGQQVshtBKggRYINlpKzO5NiHfpbZBSucSrQiCoPYpdsN8UOrcpV72ZomQggRYIGiYSAtwdM46Hcl3Q-_Sfb9-3zl6QUzT9Ai5imuRmo2ygwJEdGltZYIDSbi11Jqx6Kj_F2lzaWduYXR1cmVYMIcgbcKXr2zVU1TnnuZkxIUamscPJPxElbp5sYgzDB0DSWufUiI9zOchzIMBYJ80qWR0cmVlgwJDc2lngwJYIGuaQaib12ag5Lo5gB8FKLYAthE567jSV7PzWLEvIAsNgwGCBFgg_4A4YAApueE_Okpwdk3fQTVbz0m1lBPdcGcAjBVlA6iDAlggtYRNmXNW29rWs_4hiI9dg4sHAjLRJIjaD0lGloBYyEKCA0A";
+    const VP_EXPIRY_NS: u128 = 1729758417 * 1_000_000_000; // from ID_ALIAS_CREDENTIAL_JWS
     const VP_CURRENT_TIME_AFTER_EXPIRY_NS: u128 = VP_EXPIRY_NS + MINUTE_NS;
     const VP_CURRENT_TIME_BEFORE_EXPIRY_NS: u128 = VP_EXPIRY_NS - MINUTE_NS;
 
@@ -794,13 +796,12 @@ mod tests {
     fn local_ic_root_pk_raw() -> Vec<u8> {
         let pk_der = decode_b64(TEST_IC_ROOT_PK_B64URL).expect("failure decoding canister pk");
         extract_raw_root_pk_from_der(pk_der.as_slice())
-            .expect("failure extracting root pk from DER")
+            .expect("failure extracting local root pk from DER")
     }
 
     fn mainnet_ic_root_pk_raw() -> Vec<u8> {
-        let pk_der = decode_b64(TEST_IC_ROOT_PK_B64URL).expect("failure decoding canister pk");
-        extract_raw_root_pk_from_der(pk_der.as_slice())
-            .expect("failure extracting root pk from DER")
+        extract_raw_root_pk_from_der(IC_ROOT_PK_DER.as_slice())
+            .expect("failure extracting mainnet root pk from DER")
     }
 
     fn local_ii_canister_sig_pk() -> CanisterSigPublicKey {
@@ -818,25 +819,27 @@ mod tests {
     }
 
     fn mainnet_ii_canister_sig_pk() -> CanisterSigPublicKey {
-        CanisterSigPublicKey::new(
-            Principal::from_text(LOCAL_II_CANISTER_ID).expect("wrong principal"),
-            LOCAL_SEED.to_vec(),
+        let pk_der = decode_b64(
+            "MDwwDAYKKwYBBAGDuEMBAgMsAAoAAAAAAGAAJwEB_1ACiey50wEddDSmI0qOV-tYGROhz5LPr2tuzn0JbOk",
         )
+        .expect("failure decoding ii canister pk");
+        CanisterSigPublicKey::try_from(pk_der.as_slice()).expect("wrong pk for ii in mainnet")
     }
 
     fn mainnet_issuer_canister_sig_pk() -> CanisterSigPublicKey {
-        CanisterSigPublicKey::new(
-            Principal::from_text(LOCAL_ISSUER_SIGNING_CANISTER_ID).expect("wrong principal"),
-            LOCAL_SEED.to_vec(),
+        let pk_der = decode_b64(
+            "MDwwDAYKKwYBBAGDuEMBAgMsAAoAAAAAAeA6QQEBnooU2y2h98dm-qArrl_PUQtDEbi1DB9TMPslpi_gelg",
         )
+        .expect("failure decoding issuer canister pk");
+        CanisterSigPublicKey::try_from(pk_der.as_slice()).expect("Wrong pk for issuer in mainnet")
     }
 
     fn alias_principal() -> Principal {
-        Principal::from_text(ALIAS_ID_PRINCIPAL).expect("wrong principal")
+        Principal::from_text(ALIAS_ID_PRINCIPAL).expect("wrong id alias principal")
     }
 
     fn dapp_principal() -> Principal {
-        Principal::from_text(ALIAS_DAPP_PRINCIPAL).expect("wrong principal")
+        Principal::from_text(ALIAS_DAPP_PRINCIPAL).expect("wrong dapp principal")
     }
 
     fn claims_from_jws(credential_jws: &str) -> JwtClaims<Value> {
@@ -847,15 +850,6 @@ mod tests {
         let claims: JwtClaims<Value> =
             serde_json::from_slice(jws.claims()).expect("failed parsing JSON JWT claims");
         claims
-    }
-
-    fn local_test_vc_flow_signers() -> VcFlowSigners {
-        VcFlowSigners {
-            ii_canister_id: local_ii_canister_sig_pk().canister_id,
-            ii_origin: II_ISSUER_URL.to_string(),
-            issuer_canister_id: local_issuer_canister_sig_pk().canister_id,
-            issuer_origin: ISSUER_URL.to_string(),
-        }
     }
 
     fn mainnet_test_vc_flow_signers() -> VcFlowSigners {
@@ -945,8 +939,8 @@ mod tests {
     fn should_verify_credential_jws() {
         verify_credential_jws_with_canister_id(
             ALIAS_JWS,
-            &local_ii_canister_sig_pk().canister_id,
-            &local_ic_root_pk_raw(),
+            &mainnet_ii_canister_sig_pk().canister_id,
+            &mainnet_ic_root_pk_raw(),
             ALIAS_CURRENT_TIME_BEFORE_EXPIRY_NS,
         )
         .expect("JWS verification failed");
@@ -956,8 +950,8 @@ mod tests {
     fn should_fail_verify_credential_jws_if_expired() {
         let result = verify_credential_jws_with_canister_id(
             ALIAS_JWS,
-            &local_ii_canister_sig_pk().canister_id,
-            &local_ic_root_pk_raw(),
+            &mainnet_ii_canister_sig_pk().canister_id,
+            &&mainnet_ic_root_pk_raw(),
             ALIAS_CURRENT_TIME_AFTER_EXPIRY_NS,
         );
         assert_matches!(result, Err(e) if e.to_string().contains("credential expired"));
@@ -978,8 +972,8 @@ mod tests {
     fn should_fail_verify_credential_jws_without_canister_pk() {
         let result = verify_credential_jws_with_canister_id(
             ID_ALIAS_CREDENTIAL_JWS_NO_JWK,
-            &local_ii_canister_sig_pk().canister_id,
-            &local_ic_root_pk_raw(),
+            &mainnet_ii_canister_sig_pk().canister_id,
+            &mainnet_ic_root_pk_raw(),
             ALIAS_CURRENT_TIME_BEFORE_EXPIRY_NS,
         );
         assert_matches!(result, Err(e) if e.to_string().contains("missing JWK in JWS header"));
@@ -991,7 +985,7 @@ mod tests {
         let result = verify_credential_jws_with_canister_id(
             ALIAS_JWS,
             &wrong_canister_sig_pk.canister_id,
-            &local_ic_root_pk_raw(),
+            &mainnet_ic_root_pk_raw(),
             ALIAS_CURRENT_TIME_BEFORE_EXPIRY_NS,
         );
         assert_matches!(result, Err(e) if e.to_string().contains("canister sig canister id does not match provided canister id"));
@@ -1003,8 +997,8 @@ mod tests {
         ic_root_pk[IC_ROOT_PK_DER_PREFIX.len()] += 1; // change the root pk value
         let result = verify_credential_jws_with_canister_id(
             ALIAS_JWS,
-            &local_ii_canister_sig_pk().canister_id,
-            &ic_root_pk,
+            &mainnet_ii_canister_sig_pk().canister_id,
+            &local_ic_root_pk_raw(),
             ALIAS_CURRENT_TIME_BEFORE_EXPIRY_NS,
         );
         let err = result.err().expect("expected error");
@@ -1017,8 +1011,8 @@ mod tests {
             ALIAS_JWS,
             &dapp_principal(),
             RP_DERIVATION_ORIGIN,
-            &local_ii_canister_sig_pk().canister_id,
-            &local_ic_root_pk_raw(),
+            &mainnet_ii_canister_sig_pk().canister_id,
+            &&mainnet_ic_root_pk_raw(),
             ALIAS_CURRENT_TIME_BEFORE_EXPIRY_NS,
         )
         .expect("JWS verification failed");
@@ -1134,7 +1128,7 @@ mod tests {
 
     #[test]
     fn should_fail_verify_ii_presentation_with_wrong_effective_subject() {
-        let wrong_subject = dapp_principal(); // does not match ID_ALIAS_VC_FOR_VP_JWS
+        let wrong_subject = alias_principal(); // does not match the "sub" VP_VC_JWS
         let vp_jwt = build_ii_verifiable_presentation_jwt(
             wrong_subject,
             VP_ID_ALIAS_JWS.to_string(),
@@ -1154,9 +1148,9 @@ mod tests {
 
     #[test]
     fn should_fail_verify_ii_presentation_with_non_matching_id_alias_in_vcs() {
-        let id_dapp = dapp_principal(); // does match ID_ALIAS_CREDENTIAL_JWS
+        let id_dapp = dapp_principal(); // does match ALIAS_JWS
 
-        // ID_ALIAS_CREDENTIAL_JWS does not match REQUESTED_VC_FOR_VP_JWS
+        // ALIAS_JWS does not match VP_VC_JWS
         let vp_jwt = build_ii_verifiable_presentation_jwt(
             id_dapp,
             ALIAS_JWS.to_string(),
@@ -1455,9 +1449,9 @@ mod tests {
 
     fn vp_vc_spec() -> CredentialSpec {
         let mut args = HashMap::new();
-        args.insert("minAge".to_string(), ArgumentValue::Int(18));
+        args.insert("one".to_string(), ArgumentValue::String("arg".to_string()));
         CredentialSpec {
-            credential_type: "VerifiedAdult".to_string(),
+            credential_type: "Test".to_string(),
             arguments: Some(args),
         }
     }
@@ -1583,20 +1577,24 @@ mod tests {
     }
 
     #[test]
-    fn should_fail_validate_ii_presentation_and_claims_if_wrong_vcs() {
+    fn should_fail_validate_ii_presentation_and_claims_if_wrong_claims() {
         let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
         let vp_jwt = build_ii_verifiable_presentation_jwt(
             id_dapp,
             VP_ID_ALIAS_JWS.to_string(),
-            VP_ANOTHER_VC_JWS.to_string(),
+            VP_VC_JWS.to_string(),
         )
         .expect("vp-creation failed");
+        let wrong_claims = CredentialSpec {
+            credential_type: "NotSameCredential".to_string(),
+            arguments: None,
+        };
         let result = validate_ii_presentation_and_claims(
             &vp_jwt,
             id_dapp,
             RP_DERIVATION_ORIGIN.to_string(),
             &mainnet_test_vc_flow_signers(),
-            &vp_vc_spec(),
+            &wrong_claims,
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
         );
@@ -1616,11 +1614,20 @@ mod tests {
     fn should_build_credential_jwt() {
         // Should match the "exp" in the example
         let expiration = 1620329470;
+        // Should match the "sub" in the example
+        let id_dapp_text = "p2nlc-3s5ul-lcu74-t6pn2-ui5im-i4a5f-a4tga-e6znf-tnvlh-wkmjs-dqe";
+        // Should match the credentials of the example jwt
+        let mut args = HashMap::new();
+        args.insert("minAge".to_string(), ArgumentValue::Int(18));
+        let spec = CredentialSpec {
+            credential_type: "VerifiedAdult".to_string(),
+            arguments: Some(args),
+        };
         let example_jwt = "{\"exp\":1620329470,\"iss\":\"https://age_verifier.info/\",\"nbf\":1707817485,\"jti\":\"https://age_verifier.info/credentials/42\",\"sub\":\"did:icp:p2nlc-3s5ul-lcu74-t6pn2-ui5im-i4a5f-a4tga-e6znf-tnvlh-wkmjs-dqe\",\"vc\":{\"@context\":\"https://www.w3.org/2018/credentials/v1\",\"type\":[\"VerifiableCredential\",\"VerifiedAdult\"],\"credentialSubject\":{\"VerifiedAdult\":{\"minAge\":18}}}}";
         let example_jwt_without_nbf = "{\"exp\":1620329470,\"iss\":\"https://age_verifier.info/\",\"jti\":\"https://age_verifier.info/credentials/42\",\"sub\":\"did:icp:p2nlc-3s5ul-lcu74-t6pn2-ui5im-i4a5f-a4tga-e6znf-tnvlh-wkmjs-dqe\",\"vc\":{\"@context\":\"https://www.w3.org/2018/credentials/v1\",\"type\":[\"VerifiableCredential\",\"VerifiedAdult\"],\"credentialSubject\":{\"VerifiedAdult\":{\"minAge\":18}}}}";
-        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let id_dapp = Principal::from_text(id_dapp_text).expect("wrong principal");
         let params = CredentialParams {
-            spec: vp_vc_spec(),
+            spec,
             subject_id: did_for_principal(id_dapp),
             credential_id_url: "https://age_verifier.info/credentials/42".to_string(),
             issuer_url: "https://age_verifier.info".to_string(),
