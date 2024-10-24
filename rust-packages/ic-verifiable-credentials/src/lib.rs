@@ -1577,7 +1577,7 @@ mod tests {
     }
 
     #[test]
-    fn should_fail_validate_ii_presentation_and_claims_if_wrong_claims() {
+    fn should_fail_validate_ii_presentation_and_claims_if_wrong_spec() {
         let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
         let vp_jwt = build_ii_verifiable_presentation_jwt(
             id_dapp,
@@ -1585,7 +1585,7 @@ mod tests {
             VP_VC_JWS.to_string(),
         )
         .expect("vp-creation failed");
-        let wrong_claims = CredentialSpec {
+        let wrong_spec = CredentialSpec {
             credential_type: "NotSameCredential".to_string(),
             arguments: None,
         };
@@ -1594,7 +1594,7 @@ mod tests {
             id_dapp,
             RP_DERIVATION_ORIGIN.to_string(),
             &mainnet_test_vc_flow_signers(),
-            &wrong_claims,
+            &wrong_spec,
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
         );
