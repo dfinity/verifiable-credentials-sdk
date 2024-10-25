@@ -15,9 +15,9 @@ ic-signature-verification.workspace = true
 ic-cdk.workspace = true
 
 # vc dependencies
-identity_core = { git = "https://github.com/iotaledger/identity.rs", rev = "26afa2c5a7e14cfc7ea6bf9b3085624011227ef7", default-features = false, features = ["custom_time"] }
-identity_credential = { git = "https://github.com/iotaledger/identity.rs", rev = "26afa2c5a7e14cfc7ea6bf9b3085624011227ef7", default-features = false , features = ["credential", "presentation", "validator"] }
-identity_jose = { git = "https://github.com/iotaledger/identity.rs", rev = "26afa2c5a7e14cfc7ea6bf9b3085624011227ef7", default-features = false, features = ["custom_alg"] }
+identity_core = { version = "1.4.0", default-features = false, features = ["custom_time"] }
+identity_credential = { version = "1.4.0", default-features = false , features = ["credential", "presentation", "validator"] }
+identity_jose = { version = "1.4.0", default-features = false, features = ["custom_alg"] }
 
 # other dependencies
 serde.workspace = true
