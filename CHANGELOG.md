@@ -8,6 +8,8 @@ Changes in the upcoming versions.
 
 ## Improvements
 
+- Point identity.rs dependencies to crates.io instead of the repository.
+
 # release-2024-09-10
 
 ## Breaking Changes
