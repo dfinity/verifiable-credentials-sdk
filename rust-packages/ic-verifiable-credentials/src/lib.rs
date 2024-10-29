@@ -20,6 +20,7 @@ use identity_jose::jws::{
 };
 use identity_jose::jwt::JwtClaims;
 use identity_jose::jwu::{decode_b64, encode_b64};
+use regex::Regex;
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use std::ops::{Add, Deref, DerefMut};
@@ -42,6 +43,7 @@ pub const II_CREDENTIAL_URL_PREFIX: &str = "data:text/plain;charset=UTF-8,";
 pub const II_ISSUER_URL: &str = "https://identity.ic0.app/";
 pub const VC_SIGNING_INPUT_DOMAIN: &[u8; 26] = b"iccs_verifiable_credential";
 pub const DID_ICP_PREFIX: &str = "did:icp:";
+const II_MAINNET: &str = "rdmx6-jaaaa-aaaaa-aaadq-cai";
 
 /// A pair of identities, that denote the same user.
 /// Used in attribute sharing flow to maintain II's unlinkability of identities.
@@ -200,7 +202,12 @@ pub fn get_verified_id_alias_from_jws(
             inconsistent_jwt_claims("unexpected vc subject"),
         ));
     }
-    if expected_derivation_origin != alias_tuple.derivation_origin {
+
+    if !matches_expected_origin(
+        signing_canister_id,
+        expected_derivation_origin,
+        &alias_tuple,
+    ) {
         return Err(CredentialVerificationError::InvalidClaims(
             inconsistent_jwt_claims("unexpected derivation origin"),
         ));
@@ -740,6 +747,43 @@ fn presentation_to_compact_jwt(presentation: &Presentation<Jwt>) -> Result<Strin
         .map_err(|_| "internal error: JWS encoder failed")?;
     Ok(encoder.into_jws(&[]))
 }
+
+// Returns the allowed domains based on the expected origin's domain and the signing canister.
+// * If custom domain -> only use the custom domain.
+// * If canister subdomain and II mainnet -> return the old domain only.
+// * If canister subdomain and not II mainnet -> return the old and new domains.
+fn allowed_origins(origin: &str, signing_canister_id: &Principal) -> Vec<String> {
+    // Define the regex for matching canister domains of the format `https://<canister-id>[.raw].icp0`
+    let origin_mapping_regex =
+        Regex::new(r"^https://(?<subdomain>[\w-]+(?:\.raw)?)\.icp0\.io$").expect("Invalid regex");
+
+    if let Some(captures) = origin_mapping_regex.captures(origin) {
+        if let Some(subdomain) = captures.name("subdomain") {
+            let legacy_domain = format!("https://{}.ic0.app", subdomain.as_str());
+            if II_MAINNET == signing_canister_id.to_text() {
+                return vec![legacy_domain];
+            }
+            return vec![legacy_domain, origin.to_string()];
+        }
+    }
+    // Return the domain if it doesn't match a canister subdomain.
+    vec![origin.to_string()]
+}
+
+// In order to give dapps a stable principal regardless whether they use the legacy (ic0.app) or the new domain (icp0.io)
+// II maps back the derivation origin to the ic0.app domain.
+// Therefore, we map expected origin given by the developer to the old domain.
+// If the signing canister is II mainnet, we only allow the old domain to be the expected origin,
+// because this is the current behavior of II mainnet.
+fn matches_expected_origin(
+    signing_canister_id: &Principal,
+    expected_derivation_origin: &str,
+    alias_tuple: &AliasTuple,
+) -> bool {
+    allowed_origins(expected_derivation_origin, signing_canister_id)
+        .contains(&alias_tuple.derivation_origin)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -775,7 +819,10 @@ mod tests {
     const ALIAS_CURRENT_TIME_BEFORE_EXPIRY_NS: u128 = ALIAS_EXPIRY_NS - MINUTE_NS;
     // Verifiable Presentation pieces
     const ISSUER_URL: &str = "https://dummy-issuer.vc/";
-    const RP_DERIVATION_ORIGIN: &str = "https://l7rua-raaaa-aaaap-ahh6a-cai.ic0.app";
+    // The origin in the credentials uses the old domain for historical reasons.
+    const RP_DERIVATION_ORIGIN_OLD_DOMAIN: &str = "https://l7rua-raaaa-aaaap-ahh6a-cai.ic0.app";
+    // Yet, the credential is still valid if he developers check with the new domain.
+    const RP_DERIVATION_ORIGIN_NEW_DOMAIN: &str = "https://l7rua-raaaa-aaaap-ahh6a-cai.icp0.io";
     const VP_ID_ALIAS: &str = "7irwo-r5t2f-454sx-mkymz-ewrsg-o6oba-ol5jw-2wpns-yoxpi-5uego-vqe";
     const VP_RP_ID: &str = "7eboi-tyuys-aqm4c-w2l7i-vgucm-xvawx-lemzx-6kq2g-f53u7-yvfh2-nae";
     const VP_ID_ALIAS_JWS: &str = "eyJqd2siOnsia3R5Ijoib2N0IiwiYWxnIjoiSWNDcyIsImsiOiJNRHd3REFZS0t3WUJCQUdEdUVNQkFnTXNBQW9BQUFBQUFHQUFKd0VCXzFBQ2lleTUwd0VkZERTbUkwcU9WLXRZR1JPaHo1TFByMnR1em4wSmJPayJ9LCJraWQiOiJkaWQ6aWNwOmZndGU1LWNpYWFhLWFhYWFkLWFhYXRxLWNhaSIsImFsZyI6IkljQ3MifQ.eyJleHAiOjE3Mjk3NTg0MTcsImlzcyI6Imh0dHBzOi8vaWRlbnRpdHkuaWMwLmFwcC8iLCJuYmYiOjE3Mjk3NTc1MTcsImp0aSI6ImRhdGE6dGV4dC9wbGFpbjtjaGFyc2V0PVVURi04LHRpbWVzdGFtcF9uczoxNzI5NzU3NTE3MjYyMDYyMzA1LGFsaWFzX2hhc2g6ZGY4ZjkwOTk0NGQ1MjhhMWQ2ODYwOTFiZTM5YWQwNzUyMjEzYWJhMWQ0MDY2ZWJjZDg3ZDNlNmMzYmVkOTlkZCIsInN1YiI6ImRpZDppY3A6N2Vib2ktdHl1eXMtYXFtNGMtdzJsN2ktdmd1Y20teHZhd3gtbGVtengtNmtxMmctZjUzdTcteXZmaDItbmFlIiwidmMiOnsiQGNvbnRleHQiOiJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSIsInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJJbnRlcm5ldElkZW50aXR5SWRBbGlhcyI6eyJkZXJpdmF0aW9uT3JpZ2luIjoiaHR0cHM6Ly9sN3J1YS1yYWFhYS1hYWFhcC1haGg2YS1jYWkuaWMwLmFwcCIsImhhc0lkQWxpYXMiOiI3aXJ3by1yNXQyZi00NTRzeC1ta3ltei1ld3JzZy1vNm9iYS1vbDVqdy0yd3Bucy15b3hwaS01dWVnby12cWUifX19fQ.2dn3omtjZXJ0aWZpY2F0ZVkFbdnZ96NkdHJlZYMBgwGDAYIEWCCmWvo44iQiiGOonrtzz-Vc-cC15sj4dWw5iM14OXZei4MCSGNhbmlzdGVygwGDAYMBgwGDAYMBggRYIAIQTI4tvDRgL5ohfUDFZTkN99yxeUcFSZEPNIUMKZIVgwGCBFggQEL7KETbIG4XJKJI7vOT9csdIigPKY2Uj8GOCkCFM0ODAYIEWCCNPbxbGsgH608xO5FxLblP30pQBoIHcZ8cujd3GyrI74MCSgAAAAAAYAAnAQGDAYMBgwJOY2VydGlmaWVkX2RhdGGCA1gg-MJWWQNUavYDofzwqvq-zNimXmetUcqB-w0LrNC_sYeCBFggbM1rsxpUdh1KVunP2MujhNW4-0cYToyhPLcOBPIgms6CBFggJxQXULs1dQvHYawdYMxqLUmGQD8B1du-ha8XhgEfBPSCBFggPeeB3ggR9ahGkWbFlPlDPZZvaG9PQGWtk5XjC_rBU-KCBFggyyqUBXAErjNvtSujkRfPkKqt7-At3-kgW8wTyPYVCgKCBFggvB-bTFT2brj8JTgekGQa5Z74fFkBhjVRYqUstIdSQsuCBFggb8yhZG3SMgMK91m93LVVhLWbI-8p3BVCgObtABGjCHeCBFgg9_rtUWU57ZbqOhjuhW_K5PePAOkqbSsD8qC8yNYyjP6CBFgg8py_vRzM9Bm27F6IyXzWJiXqXDYZ8jfITu7XsaCfLl2DAYIEWCBXFcGPEL9l1azWEHFo-ZfuWXq0Pfy08LD-ps3EjLmQ-YMCRHRpbWWCA0mnt6Cnw6nVgBhpc2lnbmF0dXJlWDCR1BHhBERls_WaxgULheuhLoNs5bbFDw7QiyiIGuxRaUBlRfAp8u91seVbpVkoJYNqZGVsZWdhdGlvbqJpc3VibmV0X2lkWB0sVbNH7PJobIN4HWxZ0bQ-e0y6jetsGzdhB_LNAmtjZXJ0aWZpY2F0ZVkClNnZ96JkdHJlZYMBggRYIMn7ubxmVJ-rn7nj6UC7uIZSpjd9DZIZQkBUqkfLmjUggwGDAYIEWCBYlr0e6vPqPOEgzNI1ULovxaF5f0mqIr0kZk0gGA3mj4MCRnN1Ym5ldIMBgwGDAYMBggRYIIc5-77dPe2qj-9BhwNnwJBb3jdrY9034rF2-wi1ggUvgwGCBFggg_I0Z_VeOyicnsbKOf6cAu9lvR5u1cEYZsKqvna-qnaDAYMCWB0sVbNH7PJobIN4HWxZ0bQ-e0y6jetsGzdhB_LNAoMBgwJPY2FuaXN0ZXJfcmFuZ2VzggNYMtnZ94KCSgAAAAAAYAAAAQFKAAAAAABgAK4BAYJKAAAAAABgALABAUoAAAAAAG___wEBgwJKcHVibGljX2tleYIDWIUwgYIwHQYNKwYBBAGC3HwFAwECAQYMKwYBBAGC3HwFAwIBA2EAkAdRIHeOshpTCgK8x2Pn9KGSkzUGlmr3tUwQpNKyTeaoayAONEC65iZ79MSI2aEdBHLDjBtiIRmPmOTmiCujilpOOqWvzombf4Je2VrfoSYpaIBzVW8nR1JyE-jXPkDOggRYIDbzzSV9kPs45CWX8ZOl4DHb1YW2KSeTuwTbR5SAPOBuggRYIIj-oNtp84-c8_uoj4oEDzytya53cvoaQGpupGT6hYueggRYIGlh7xN8Ku4LBGcILvbTwSwD6TATtgKky2IUJw5ISGPxggRYIH4XYSU8iq7e4e1D2Iu1vaYwwPH4nnQKa88RkZ8eDR8LgwJEdGltZYIDScO7z9Hp8ZuAGGlzaWduYXR1cmVYMJSfsuzf0IsuGWBkZnOkzxXFhJHg30mRgqLNMxQLgcKrygFQuYg2iR4BecwAja35ZmR0cmVlgwGCBFggY_VDRlzjs-wNRdGdOHAK2Qfbt6qCiMuZ0VxLk2vfbziDAkNzaWeDAYIEWCA9UHBJbHOr-E1JQlly9iFGQCsTYLyd9lD3QCqcqJRFnYMBgwJYINuSM7LpfR2lCwBy0b3st88K7FYqd13Q3uK_YsH5ggu7gwGDAlggPolR0pCAtERu83fvIuzIlLuhfQ8f5M5AIY492yiyQFmCA0CCBFggeLEHcUhq_M_QAshlwqu4hNd_W7ubAKyWtRM2bcorZ-KCBFggZVFrcgHpS48RZ-Hq0IuPRUSEcVeZzcHNNAQ0Xm4QZu8";
@@ -1009,7 +1056,7 @@ mod tests {
         let alias_tuple = get_verified_id_alias_from_jws(
             ALIAS_JWS,
             &dapp_principal(),
-            RP_DERIVATION_ORIGIN,
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN,
             &mainnet_ii_canister_sig_pk().canister_id,
             &&mainnet_ic_root_pk_raw(),
             ALIAS_CURRENT_TIME_BEFORE_EXPIRY_NS,
@@ -1020,7 +1067,7 @@ mod tests {
             AliasTuple {
                 id_alias: alias_principal(),
                 id_dapp: dapp_principal(),
-                derivation_origin: RP_DERIVATION_ORIGIN.to_string(),
+                derivation_origin: RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             }
         )
     }
@@ -1055,7 +1102,30 @@ mod tests {
         let (alias_tuple_from_jws, _claims) = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
+            &mainnet_test_vc_flow_signers(),
+            &mainnet_ic_root_pk_raw(),
+            VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
+        )
+        .expect("vp verification failed");
+        assert_eq!(id_alias, alias_tuple_from_jws.id_alias);
+        assert_eq!(id_dapp, alias_tuple_from_jws.id_dapp);
+    }
+
+    #[test]
+    fn should_verify_ii_presentation_with_new_domain_mainnet_ii() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let vp_jwt = build_ii_verifiable_presentation_jwt(
+            id_dapp,
+            VP_ID_ALIAS_JWS.to_string(),
+            VP_VC_JWS.to_string(),
+        )
+        .expect("vp creation failed");
+        let (alias_tuple_from_jws, _claims) = verify_ii_presentation_jwt_with_canister_ids(
+            &vp_jwt,
+            id_dapp,
+            RP_DERIVATION_ORIGIN_NEW_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
@@ -1077,7 +1147,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_AFTER_EXPIRY_NS,
@@ -1100,7 +1170,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
@@ -1117,7 +1187,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
@@ -1137,7 +1207,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             wrong_subject,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
@@ -1159,7 +1229,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
@@ -1179,7 +1249,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
@@ -1202,7 +1272,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &mainnet_ic_root_pk_raw(),
             VP_CURRENT_TIME_BEFORE_EXPIRY_NS,
@@ -1223,7 +1293,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &VcFlowSigners {
                 ii_canister_id: local_issuer_canister_sig_pk().canister_id,
                 ..mainnet_test_vc_flow_signers()
@@ -1247,7 +1317,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &VcFlowSigners {
                 issuer_canister_id: local_ii_canister_sig_pk().canister_id,
                 ..mainnet_test_vc_flow_signers()
@@ -1272,7 +1342,7 @@ mod tests {
         let result = verify_ii_presentation_jwt_with_canister_ids(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &VcFlowSigners {
                 // Swap also the order of the canister ids, so that they match the VCs
                 ii_canister_id: mainnet_issuer_canister_sig_pk().canister_id,
@@ -1467,7 +1537,7 @@ mod tests {
         validate_ii_presentation_and_claims(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &vp_vc_spec(),
             &mainnet_ic_root_pk_raw(),
@@ -1490,7 +1560,7 @@ mod tests {
         let result = validate_ii_presentation_and_claims(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &VcFlowSigners {
                 ii_canister_id: mainnet_issuer_canister_sig_pk().canister_id,
                 ..mainnet_test_vc_flow_signers()
@@ -1505,7 +1575,7 @@ mod tests {
         let result = validate_ii_presentation_and_claims(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &VcFlowSigners {
                 issuer_canister_id: mainnet_ii_canister_sig_pk().canister_id,
                 ..mainnet_test_vc_flow_signers()
@@ -1520,7 +1590,7 @@ mod tests {
         let result = validate_ii_presentation_and_claims(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &VcFlowSigners {
                 issuer_origin: "https://wrong.origin.com".to_string(),
                 ..mainnet_test_vc_flow_signers()
@@ -1545,7 +1615,7 @@ mod tests {
         let result = validate_ii_presentation_and_claims(
             &vp_jwt,
             id_alias, // wrong effective subject
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &vp_vc_spec(),
             &mainnet_ic_root_pk_raw(),
@@ -1566,7 +1636,7 @@ mod tests {
         let result = validate_ii_presentation_and_claims(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &vp_vc_spec(),
             &mainnet_ic_root_pk_raw(),
@@ -1591,7 +1661,7 @@ mod tests {
         let result = validate_ii_presentation_and_claims(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &mainnet_test_vc_flow_signers(),
             &wrong_spec,
             &mainnet_ic_root_pk_raw(),
@@ -1651,7 +1721,7 @@ mod tests {
         let result = validate_ii_presentation_and_claims(
             &vp_jwt,
             id_dapp,
-            RP_DERIVATION_ORIGIN.to_string(),
+            RP_DERIVATION_ORIGIN_OLD_DOMAIN.to_string(),
             &flow_signers,
             &spec,
             &local_ic_root_pk_raw(),
@@ -1698,5 +1768,140 @@ mod tests {
         assert_ne!(credential, example_jwt);
         // After the removal of the nbf-entries, all the remaining information should be identical.
         assert_eq!(remove_nbf(credential.as_str()), example_jwt_without_nbf);
+    }
+
+    // Tests for `matches_expected_origin`
+
+    #[test]
+    fn test_matches_expected_origin_custom_domain() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::anonymous();
+        let expected_derivation_origin = "https://custom-domain.com";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://custom-domain.com".to_string(),
+        };
+
+        assert!(matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
+    }
+
+    #[test]
+    fn test_matches_expected_origin_ii_legacy_domain() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::from_text(II_MAINNET).unwrap();
+        let expected_derivation_origin = "https://example.icp0.io";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://example.ic0.app".to_string(),
+        };
+
+        assert!(matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
+    }
+
+    #[test]
+    fn test_matches_expected_origin_new_domain_no_ii() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::anonymous();
+        let expected_derivation_origin = "https://example.icp0.io";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://example.icp0.io".to_string(),
+        };
+
+        assert!(matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
+    }
+
+    #[test]
+    fn test_does_not_match_expected_origin_new_domain_ii_mainnet() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::from_text(II_MAINNET).unwrap();
+        let expected_derivation_origin = "https://example.icp0.io";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://example.icp0.io".to_string(),
+        };
+
+        assert!(!matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
+    }
+
+    #[test]
+    fn test_does_not_match_different_domains() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::anonymous();
+        let expected_derivation_origin = "https://another-domain.com";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://different-domain.com".to_string(),
+        };
+
+        assert!(!matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
+    }
+
+    #[test]
+    fn test_does_not_match_different_canister_domains() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::anonymous();
+        let expected_derivation_origin = "https://aaaaa-aa.ic0.app";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://rrkah-fqaaa-aaaaa-aaaaq-cai.ic0.app".to_string(),
+        };
+
+        assert!(!matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
+    }
+
+    #[test]
+    fn test_matches_expected_origin_subdomain_with_raw() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::from_text(II_MAINNET).unwrap();
+        let expected_derivation_origin = "https://example.raw.icp0.io";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://example.raw.ic0.app".to_string(),
+        };
+
+        assert!(matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
     }
 }
