@@ -43,6 +43,7 @@ pub const II_CREDENTIAL_URL_PREFIX: &str = "data:text/plain;charset=UTF-8,";
 pub const II_ISSUER_URL: &str = "https://identity.ic0.app/";
 pub const VC_SIGNING_INPUT_DOMAIN: &[u8; 26] = b"iccs_verifiable_credential";
 pub const DID_ICP_PREFIX: &str = "did:icp:";
+const II_MAINNET: &str = "rdmx6-jaaaa-aaaaa-aaadq-cai";
 
 /// A pair of identities, that denote the same user.
 /// Used in attribute sharing flow to maintain II's unlinkability of identities.
@@ -201,10 +202,12 @@ pub fn get_verified_id_alias_from_jws(
             inconsistent_jwt_claims("unexpected vc subject"),
         ));
     }
-    // In order to give dapps a stable principal regardless whether they use the legacy (ic0.app) or the new domain (icp0.io)
-    // II maps back the derivation origin to the ic0.app domain.
-    // Therefore, we want to remap the origin given by the developer to the old domain.
-    if remap_to_legacy_domain(expected_derivation_origin) != alias_tuple.derivation_origin {
+
+    if !matches_expected_origin(
+        signing_canister_id,
+        expected_derivation_origin,
+        &alias_tuple,
+    ) {
         return Err(CredentialVerificationError::InvalidClaims(
             inconsistent_jwt_claims("unexpected derivation origin"),
         ));
@@ -745,21 +748,40 @@ fn presentation_to_compact_jwt(presentation: &Presentation<Jwt>) -> Result<Strin
     Ok(encoder.into_jws(&[]))
 }
 
-// Maps `icp0.io` domains to `ic0.app`
-fn remap_to_legacy_domain(origin: &str) -> String {
-    // Define the regex for matching the origin with multiple subdomains.
+// Returns the allowed domains based on the expected origin's domain and the signing canister.
+// * If custom domain -> only use the custom domain.
+// * If canister subdomain and II mainnet -> return the old domain only.
+// * If canister subdomain and not II mainnet -> return the old and new domains.
+fn allowed_origins(origin: &str, signing_canister_id: &Principal) -> Vec<String> {
+    // Define the regex for matching canister domains of the format `https://<canister-id>[.raw].icp0`
     let origin_mapping_regex =
-        Regex::new(r"^https://(?P<subdomain>([\w-]+\.)*[\w-]+(?:\.raw)?)\.icp0\.io$")
-            .expect("Invalid regex");
+        Regex::new(r"^https://(?<subdomain>[\w-]+(?:\.raw)?)\.icp0\.io$").expect("Invalid regex");
 
     if let Some(captures) = origin_mapping_regex.captures(origin) {
         if let Some(subdomain) = captures.name("subdomain") {
-            return format!("https://{}.ic0.app", subdomain.as_str());
+            let legacy_domain = format!("https://{}.ic0.app", subdomain.as_str());
+            if II_MAINNET == signing_canister_id.to_text() {
+                return vec![legacy_domain];
+            }
+            return vec![legacy_domain, origin.to_string()];
         }
     }
+    // Return the domain if it doesn't match a canister subdomain.
+    vec![origin.to_string()]
+}
 
-    // If the regex doesn't match, return the original origin.
-    origin.to_string()
+// In order to give dapps a stable principal regardless whether they use the legacy (ic0.app) or the new domain (icp0.io)
+// II maps back the derivation origin to the ic0.app domain.
+// Therefore, we map expected origin given by the developer to the old domain.
+// If the signing canister is II mainnet, we only allow the old domain to be the expected origin,
+// because this is the current behavior of II mainnet.
+fn matches_expected_origin(
+    signing_canister_id: &Principal,
+    expected_derivation_origin: &str,
+    alias_tuple: &AliasTuple,
+) -> bool {
+    allowed_origins(expected_derivation_origin, signing_canister_id)
+        .contains(&alias_tuple.derivation_origin)
 }
 
 #[cfg(test)]
@@ -1091,7 +1113,7 @@ mod tests {
     }
 
     #[test]
-    fn should_verify_ii_presentation_with_new_domain() {
+    fn should_verify_ii_presentation_with_new_domain_mainnet_ii() {
         let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
         let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
         let vp_jwt = build_ii_verifiable_presentation_jwt(
@@ -1748,61 +1770,138 @@ mod tests {
         assert_eq!(remove_nbf(credential.as_str()), example_jwt_without_nbf);
     }
 
-    // Tests for `remap_to_legacy_domain`
+    // Tests for `matches_expected_origin`
 
     #[test]
-    fn test_remap_valid_subdomain() {
-        let origin = "https://example.icp0.io";
-        let result = remap_to_legacy_domain(origin);
-        assert_eq!(result, "https://example.ic0.app");
+    fn test_matches_expected_origin_custom_domain() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::anonymous();
+        let expected_derivation_origin = "https://custom-domain.com";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://custom-domain.com".to_string(),
+        };
+
+        assert!(matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
     }
 
     #[test]
-    fn test_remap_with_raw_subdomain() {
-        let origin = "https://example.raw.icp0.io";
-        let result = remap_to_legacy_domain(origin);
-        assert_eq!(result, "https://example.raw.ic0.app");
+    fn test_matches_expected_origin_ii_legacy_domain() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::from_text(II_MAINNET).unwrap();
+        let expected_derivation_origin = "https://example.icp0.io";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://example.ic0.app".to_string(),
+        };
+
+        assert!(matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
     }
 
     #[test]
-    fn test_remap_localhost() {
-        let origin = "https://localhost:4356";
-        let result = remap_to_legacy_domain(origin);
-        assert_eq!(result, "https://localhost:4356");
+    fn test_matches_expected_origin_new_domain_no_ii() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::anonymous();
+        let expected_derivation_origin = "https://example.icp0.io";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://example.icp0.io".to_string(),
+        };
+
+        assert!(matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
     }
 
     #[test]
-    fn test_remap_invalid_domain() {
-        let origin = "https://example.com";
-        let result = remap_to_legacy_domain(origin);
-        assert_eq!(result, origin); // Should return the original since it does not match
+    fn test_does_not_match_expected_origin_new_domain_ii_mainnet() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::from_text(II_MAINNET).unwrap();
+        let expected_derivation_origin = "https://example.icp0.io";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://example.icp0.io".to_string(),
+        };
+
+        assert!(!matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
     }
 
     #[test]
-    fn test_remap_no_subdomain() {
-        let origin = "https://icp0.io";
-        let result = remap_to_legacy_domain(origin);
-        assert_eq!(result, origin); // Should return the original since there's no subdomain
+    fn test_does_not_match_different_domains() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::anonymous();
+        let expected_derivation_origin = "https://another-domain.com";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://different-domain.com".to_string(),
+        };
+
+        assert!(!matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
     }
 
     #[test]
-    fn test_remap_with_multiple_subdomains() {
-        let origin = "https://sub.example.icp0.io";
-        let result = remap_to_legacy_domain(origin);
-        assert_eq!(result, "https://sub.example.ic0.app");
+    fn test_does_not_match_different_canister_domains() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::anonymous();
+        let expected_derivation_origin = "https://aaaaa-aa.ic0.app";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://rrkah-fqaaa-aaaaa-aaaaq-cai.ic0.app".to_string(),
+        };
+
+        assert!(!matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
     }
 
     #[test]
-    fn test_remap_http_instead_of_https() {
-        let origin = "http://example.icp0.io";
-        let result = remap_to_legacy_domain(origin);
-        assert_eq!(result, origin); // Should return the original because it expects HTTPS
-    }
+    fn test_matches_expected_origin_subdomain_with_raw() {
+        let id_alias = Principal::from_text(VP_ID_ALIAS).expect("wrong principal");
+        let id_dapp = Principal::from_text(VP_RP_ID).expect("wrong principal");
+        let signing_canister_id = Principal::from_text(II_MAINNET).unwrap();
+        let expected_derivation_origin = "https://example.raw.icp0.io";
+        let alias_tuple = AliasTuple {
+            id_alias,
+            id_dapp,
+            derivation_origin: "https://example.raw.ic0.app".to_string(),
+        };
 
-    #[test]
-    fn test_remap_with_empty_origin() {
-        let origin = "";
-        let result = remap_to_legacy_domain(origin);
-        assert_eq!(result, origin); // Should return an empty string
+        assert!(matches_expected_origin(
+            &signing_canister_id,
+            expected_derivation_origin,
+            &alias_tuple
+        ));
     }
 }
