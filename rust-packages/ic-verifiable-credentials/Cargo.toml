@@ -5,6 +5,7 @@ version = "1.0.0"
 keywords = ["internet-computer", "verifiable", "credentials", "icp", "dfinity"]
 categories = ["api-bindings", "data-structures", "no-std"]
 edition = "2021"
+license = "Apache-2.0"
 
 [dependencies]
 # ic dependencies
