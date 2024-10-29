@@ -4,7 +4,13 @@ Changes in the upcoming versions.
 
 ## Breaking Changes
 
-- New field `derivationOrigin` is required to match in the ID Alias credential.
+## Improvements
+
+# release-2024-10-29
+
+## Breaking Changes
+
+- New field `derivationOrigin` is required to match in the ID Alias credential in `ic-verifiable-credentials`.
 
 ## Improvements
 
