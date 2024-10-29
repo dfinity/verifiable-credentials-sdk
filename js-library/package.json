@@ -1,6 +1,6 @@
 {
   "name": "@dfinity/verifiable-credentials",
-  "version": "0.0.4",
+  "version": "1.0.0",
   "description": "Library to interact with the identity provider to get a credential presentation.",
   "type": "module",
   "files": [
