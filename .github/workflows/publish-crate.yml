@@ -1,6 +1,9 @@
 name: Publish to crates.io
 
 on:
+  # Manual trigger
+  workflow_dispatch:
+
   release:
     types: [released]
 
