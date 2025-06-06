@@ -3,7 +3,7 @@
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use ic_cdk::{
-    api::{data_certificate, set_certified_data},
+    api::{data_certificate, certified_data_set},
     *,
 };
 use ic_http_certification::{
@@ -237,7 +237,7 @@ fn certify_asset_with_encoding(
                 ));
 
                 // set the canister's certified data
-                set_certified_data(&http_tree.root_hash());
+                certified_data_set(&http_tree.root_hash());
             });
         });
     };
@@ -280,7 +280,7 @@ fn certify_asset_response(
             ));
 
             // set the canister's certified data
-            set_certified_data(&http_tree.root_hash());
+            certified_data_set(&http_tree.root_hash());
         });
     });
 }
