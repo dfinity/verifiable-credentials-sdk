@@ -2,7 +2,7 @@ use base64::Engine;
 use candid::{candid_method, Principal};
 use ic_canister_sig_creation::signature_map::{CanisterSigInputs, SignatureMap, LABEL_SIG};
 use ic_canister_sig_creation::CanisterSigPublicKey;
-use ic_cdk::api::{set_certified_data, time};
+use ic_cdk::api::{canister_self, certified_data_set, time};
 use ic_cdk_macros::{query, update};
 use ic_certification::{labeled_hash, Hash};
 use ic_verifiable_credentials::issuer_api::{
@@ -36,7 +36,7 @@ thread_local! {
 lazy_static! {
     // Seed and public key used for signing the credentials.
     static ref CANISTER_SIG_SEED: Vec<u8> = hash_bytes("DummyIssuer").to_vec();
-    static ref CANISTER_SIG_PK: CanisterSigPublicKey = CanisterSigPublicKey::new(ic_cdk::id(), CANISTER_SIG_SEED.clone());
+    static ref CANISTER_SIG_PK: CanisterSigPublicKey = CanisterSigPublicKey::new(canister_self(), CANISTER_SIG_SEED.clone());
 }
 
 fn hash_bytes(value: impl AsRef<[u8]>) -> Hash {
@@ -47,7 +47,7 @@ fn hash_bytes(value: impl AsRef<[u8]>) -> Hash {
 
 fn update_root_hash() {
     SIGNATURES.with_borrow(|sigs| {
-        set_certified_data(&labeled_hash(LABEL_SIG, &sigs.root_hash()));
+        certified_data_set(&labeled_hash(LABEL_SIG, &sigs.root_hash()));
     })
 }
 
