@@ -6,6 +6,8 @@ Changes in the upcoming versions.
 
 ## Improvements
 
+- Upgrade ic_cdk and related dependencies.
+
 # release-2024-10-29
 
 ## Breaking Changes
