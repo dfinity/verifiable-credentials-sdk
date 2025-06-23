@@ -6,6 +6,10 @@ Changes in the upcoming versions.
 
 ## Improvements
 
+# release-2025-06-23
+
+## Improvements
+
 - Upgrade ic_cdk and related dependencies.
 - Upgrade Rust.
 
