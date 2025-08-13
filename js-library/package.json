@@ -78,6 +78,6 @@
     "nanoid": "^5.0.7"
   },
   "peerDependencies": {
-    "@dfinity/principal": "^3"
+    "@dfinity/principal": "*"
   }
 }
