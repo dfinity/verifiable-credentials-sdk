@@ -6,6 +6,13 @@ Changes in the upcoming versions.
 
 ## Improvements
 
+# release-2025-08-13
+
+## Improvements
+
+- Accept any `@dfinity/principal` as peer dependency of the JS library `verifiable-credentials`.
+- Fix pipeline to release `next` versions of the JS lib.
+
 # release-2025-06-23
 
 ## Improvements
