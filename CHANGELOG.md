@@ -13,6 +13,11 @@ Changes in the upcoming versions.
 - Accept any `@dfinity/principal` as peer dependency of the JS library `verifiable-credentials`.
 - Fix pipeline to release `next` versions of the JS lib.
 
+## Build
+
+- Add `jsdom` as dev dependency required to run test in the CI.
+- Bump Node requirement to LTS (v22).
+
 # release-2025-06-23
 
 ## Improvements
