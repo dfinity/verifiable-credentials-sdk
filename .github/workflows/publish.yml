@@ -1,12 +1,45 @@
 name: Publish Release
 
 on:
+  workflow_dispatch:
   release:
     types: [released]
 
+run-name: >-
+  ${{
+    github.event_name == 'release' && 'Publish Release'
+    || github.event_name == 'workflow_dispatch' && 'Next Publication'
+    || 'Publish Release' }}
+
 jobs:
   publish:
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      working-directory: js-library
+      dist-directory: js-library/dist
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Prepare and Build JS Library
+        uses: ./.github/actions/prepare
+        with:
+          folder: ${{env.working-directory}}
+
+      - name: Publish
+        working-directory: ${{env.dist-directory}}
+        run: ../scripts/publish-npm.sh
+
+  publish-next:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: read
       id-token: write
@@ -23,8 +56,10 @@ jobs:
         with:
           folder: ${{env.working-directory}}
 
+      - name: Package next
+        working-directory: ${{env.working-directory}}
+        run: ./scripts/package-next
+
       - name: Publish
         working-directory: ${{env.dist-directory}}
-        run: ../scripts/publish-npm.sh
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+        run: npm publish --provenance --tag next
