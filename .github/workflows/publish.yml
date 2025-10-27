@@ -17,16 +17,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
 
       - name: Prepare and Build JS Library
         uses: ./.github/actions/prepare
         with:
           folder: ${{env.working-directory}}
-
-      - name: Set up npm
-        working-directory: ${{env.dist-directory}}
-        run: printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' registry=https://registry.npmjs.org/ always-auth=true >> .npmrc
 
       - name: Publish
         working-directory: ${{env.dist-directory}}
