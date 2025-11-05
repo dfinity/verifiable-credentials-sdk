@@ -6,6 +6,12 @@ Changes in the upcoming versions.
 
 ## Improvements
 
+# release-2025-11-05
+
+## Upgrades
+
+- Migrate from `@dfinity` to `@icp-sdk` dependency.
+
 # release-2025-08-14
 
 ## Improvements
