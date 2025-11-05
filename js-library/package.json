@@ -79,6 +79,6 @@
     "nanoid": "^5.0.7"
   },
   "peerDependencies": {
-    "@dfinity/principal": "*"
+    "@icp-sdk/core": "^*"
   }
 }

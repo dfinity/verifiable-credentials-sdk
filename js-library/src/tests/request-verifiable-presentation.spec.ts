@@ -1,4 +1,4 @@
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { vi } from "vitest";
 import {
   ERROR_USER_INTERRUPT,
