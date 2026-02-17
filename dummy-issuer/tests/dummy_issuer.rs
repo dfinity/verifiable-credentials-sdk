@@ -1,7 +1,7 @@
 use base64::Engine;
 use std::collections::HashMap;
 
-use candid::{decode_one, encode_one, CandidType, Deserialize, Principal};
+use candid::{CandidType, Deserialize, Principal, decode_one, encode_one};
 use ic_cdk::api::management_canister::main::CanisterId;
 use ic_verifiable_credentials::issuer_api::{
     ArgumentValue, CredentialSpec, DerivationOriginData, DerivationOriginError,

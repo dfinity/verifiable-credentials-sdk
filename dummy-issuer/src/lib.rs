@@ -1,10 +1,10 @@
 use base64::Engine;
-use candid::{candid_method, Principal};
-use ic_canister_sig_creation::signature_map::{CanisterSigInputs, SignatureMap, LABEL_SIG};
+use candid::{Principal, candid_method};
 use ic_canister_sig_creation::CanisterSigPublicKey;
+use ic_canister_sig_creation::signature_map::{CanisterSigInputs, LABEL_SIG, SignatureMap};
 use ic_cdk::api::{canister_self, certified_data_set, time};
 use ic_cdk_macros::{query, update};
-use ic_certification::{labeled_hash, Hash};
+use ic_certification::{Hash, labeled_hash};
 use ic_verifiable_credentials::issuer_api::{
     ArgumentValue, CredentialSpec, DerivationOriginData, DerivationOriginError,
     DerivationOriginRequest, GetCredentialRequest, Icrc21ConsentInfo, Icrc21Error,
@@ -12,8 +12,8 @@ use ic_verifiable_credentials::issuer_api::{
     PrepareCredentialRequest, PreparedCredentialData,
 };
 use ic_verifiable_credentials::{
-    build_credential_jwt, did_for_principal, vc_jwt_to_jws, vc_signing_input, CredentialParams,
-    VC_SIGNING_INPUT_DOMAIN,
+    CredentialParams, VC_SIGNING_INPUT_DOMAIN, build_credential_jwt, did_for_principal,
+    vc_jwt_to_jws, vc_signing_input,
 };
 use lazy_static::lazy_static;
 use serde_bytes::ByteBuf;
@@ -176,7 +176,7 @@ fn get_credential(req: GetCredentialRequest) -> Result<IssuedCredentialData, Iss
         None => {
             return Result::<IssuedCredentialData, IssueCredentialError>::Err(internal_error(
                 "missing prepared_context",
-            ))
+            ));
         }
     };
     let credential_jwt = match String::from_utf8(prepared_context.into_vec()) {
@@ -184,7 +184,7 @@ fn get_credential(req: GetCredentialRequest) -> Result<IssuedCredentialData, Iss
         Err(_) => {
             return Result::<IssuedCredentialData, IssueCredentialError>::Err(internal_error(
                 "invalid prepared_context",
-            ))
+            ));
         }
     };
     let signing_input =

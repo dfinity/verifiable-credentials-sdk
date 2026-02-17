@@ -1,7 +1,7 @@
 // Canister based on the example "Serving static assets over HTTP (custom)"
 // Reference: https://github.com/dfinity/response-verification/tree/main/examples/http-certification/custom-assets
-use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
+use base64::engine::general_purpose::STANDARD as BASE64;
 use ic_cdk::{
     api::{certified_data_set, data_certificate},
     *,
@@ -11,7 +11,7 @@ use ic_http_certification::{
     HttpCertification, HttpCertificationPath, HttpCertificationTree, HttpCertificationTreeEntry,
     HttpRequest, HttpResponse,
 };
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 use lazy_static::lazy_static;
 use serde::Serialize;
 use std::{borrow::Cow, cell::RefCell, collections::HashMap};

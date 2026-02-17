@@ -1,7 +1,7 @@
 use crate::issuer_api::CredentialSpec;
 use base64::Engine;
 use candid::Principal;
-use ic_canister_sig_creation::{extract_raw_canister_sig_pk_from_der, CanisterSigPublicKey};
+use ic_canister_sig_creation::{CanisterSigPublicKey, extract_raw_canister_sig_pk_from_der};
 use ic_certification::Hash;
 use ic_signature_verification::verify_canister_sig;
 use identity_core::common::{Timestamp, Url};
@@ -21,7 +21,7 @@ use identity_jose::jws::{
 use identity_jose::jwt::JwtClaims;
 use identity_jose::jwu::{decode_b64, encode_b64};
 use regex::Regex;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::ops::{Add, Deref, DerefMut};
 use std::time::Duration;
@@ -790,7 +790,7 @@ mod tests {
     use crate::issuer_api::ArgumentValue;
     use assert_matches::assert_matches;
     use ic_canister_sig_creation::{
-        extract_raw_root_pk_from_der, IC_ROOT_PK_DER, IC_ROOT_PK_DER_PREFIX,
+        IC_ROOT_PK_DER, IC_ROOT_PK_DER_PREFIX, extract_raw_root_pk_from_der,
     };
     use std::collections::HashMap;
 
