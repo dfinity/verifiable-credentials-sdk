@@ -490,6 +490,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "did_url_parser"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b83822347b20ece984662821ac650ac5bcb3602d83ed83ab992b7f8dda388bdb"
+dependencies = [
+ "form_urlencoded",
+ "serde",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1240,9 +1250,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "identity_core"
-version = "1.4.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1ab2b958bbaa25150b31e2249a608b434193a55c86f1db57134721ad84f48ef"
+checksum = "cdde09ea5e540c2ba1d5891a7dbb2122d05183afc8c5930ec49ec487ceacbf6f"
 dependencies = [
  "js-sys",
  "multibase",
@@ -1257,10 +1267,11 @@ dependencies = [
 
 [[package]]
 name = "identity_credential"
-version = "1.4.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a89327409c87d9d66e43305319fbf0828947378b5b605340bb19436cbcd069b"
+checksum = "484a8d851c6ad2cdbb9965701cd9aceee01c23df94824dcac9082eb76c723c86"
 dependencies = [
+ "anyhow",
  "async-trait",
  "identity_core",
  "identity_did",
@@ -1280,11 +1291,11 @@ dependencies = [
 
 [[package]]
 name = "identity_did"
-version = "1.4.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4013089d433d00ff7a9a8e9f6b8e6e99d05d3868617d14ccf2eeeb50408b87fb"
+checksum = "63a3f3d72a407f1b1a93835a0cabdf1acd9c5b11fa4c4eee41d666eadfab0f35"
 dependencies = [
- "did_url_parser",
+ "did_url_parser 0.3.0",
  "form_urlencoded",
  "identity_core",
  "identity_jose",
@@ -1295,11 +1306,11 @@ dependencies = [
 
 [[package]]
 name = "identity_document"
-version = "1.4.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "924f491cc04f31b5f3fb83154cca44782a12e03a7248dae180f8e44f6e779973"
+checksum = "084b3e530c0d6479abbb79862a2626c422fa6ac5f93f150fca414d9b94209cc8"
 dependencies = [
- "did_url_parser",
+ "did_url_parser 0.2.0",
  "identity_core",
  "identity_did",
  "identity_verification",
@@ -1311,9 +1322,9 @@ dependencies = [
 
 [[package]]
 name = "identity_jose"
-version = "1.4.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcd846da1067ff61b6d708661c97d3056966766495ce3e3364650b96610f9b65"
+checksum = "89f3f605637db6f1a88b7dfd57630f3a05b06b095a7f0564f014341db9712465"
 dependencies = [
  "bls12_381_plus",
  "identity_core",
@@ -1328,9 +1339,9 @@ dependencies = [
 
 [[package]]
 name = "identity_verification"
-version = "1.4.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8086f82528ffbb0fe286ff5e069235536a1089e4424d4c40e014b5477b891cfc"
+checksum = "269f5ac717ee81cf52e9c63a1adb3650ee5765452dbfbe80247d86e1c98f53b8"
 dependencies = [
  "identity_core",
  "identity_did",
@@ -2356,7 +2367,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2938,7 +2949,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
