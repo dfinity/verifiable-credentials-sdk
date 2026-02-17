@@ -4,7 +4,7 @@ description = "Verifiable credentials issuing and verification for IC canisters.
 version = "1.0.2"
 keywords = ["internet-computer", "verifiable", "credentials", "icp", "dfinity"]
 categories = ["api-bindings", "data-structures", "no-std"]
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 
 [dependencies]

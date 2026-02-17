@@ -1,7 +1,7 @@
 [package]
 # This crate vendors upstream `cargo-license` (https://github.com/onur/cargo-license),
 # based on version 0.5.1, under the MIT license.
-edition = "2021"
+edition = "2024"
 name = "cargo-license"
 version = "0.5.1"
 description = "Local patch: cargo-license with atty/clap removed (library-only)"
