@@ -45,7 +45,7 @@ jobs:
           echo "POCKET_IC_BIN=$(pwd)/pocket-ic" >> $GITHUB_ENV
 
       - name: Install ic-wasm
-        run: cargo install ic-wasm --version 0.3.5
+        run: cargo install ic-wasm --version 0.9.11
 
       - name: Build Wasm Dummy Issuer
         working-directory: dummy-issuer
