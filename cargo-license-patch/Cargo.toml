@@ -7,6 +7,7 @@ version = "0.5.1"
 description = "Local patch: cargo-license with atty/clap removed (library-only)"
 license = "MIT"
 license-file = "LICENSE-MIT"
+publish = false
 
 [dependencies]
 anyhow = "1"

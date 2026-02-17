@@ -20,7 +20,7 @@ jobs:
           restore-keys: cargo-
 
       - name: Install ic-wasm
-        run: cargo install ic-wasm --version 0.9.11
+        run: cargo install ic-wasm --version 0.9.10
 
       - uses: actions/setup-node@v4
         with:
