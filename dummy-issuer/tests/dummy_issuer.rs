@@ -2,7 +2,6 @@ use base64::Engine;
 use std::collections::HashMap;
 
 use candid::{CandidType, Deserialize, Principal, decode_one, encode_one};
-use ic_cdk::api::management_canister::main::CanisterId;
 use ic_verifiable_credentials::issuer_api::{
     ArgumentValue, CredentialSpec, DerivationOriginData, DerivationOriginError,
     DerivationOriginRequest, GetCredentialRequest, Icrc21ConsentInfo, Icrc21ConsentPreferences,
@@ -35,6 +34,7 @@ enum CanisterCall {
 }
 
 mod api {
+    use ic_cdk::management_canister::CanisterId;
     use ic_verifiable_credentials::issuer_api::{
         GetCredentialRequest, IssueCredentialError, IssuedCredentialData, PrepareCredentialRequest,
         PreparedCredentialData,
