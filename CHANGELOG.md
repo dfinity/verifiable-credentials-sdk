@@ -6,6 +6,12 @@ Changes in the upcoming versions.
 
 ## Improvements
 
+# release-2026-03-05
+
+## Security
+
+- Bump dependencies and remove unused dependency for security fixes.
+
 # release-2025-11-05
 
 ## Upgrades

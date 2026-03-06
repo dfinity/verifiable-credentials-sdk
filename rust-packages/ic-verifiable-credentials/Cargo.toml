@@ -1,7 +1,7 @@
 [package]
 name = "ic-verifiable-credentials"
 description = "Verifiable credentials issuing and verification for IC canisters."
-version = "1.0.2"
+version = "1.3.0"
 keywords = ["internet-computer", "verifiable", "credentials", "icp", "dfinity"]
 categories = ["api-bindings", "data-structures", "no-std"]
 edition = "2024"
@@ -16,9 +16,17 @@ ic-signature-verification.workspace = true
 ic-cdk.workspace = true
 
 # vc dependencies
-identity_core = { version = "1.5.0", default-features = false, features = ["custom_time"] }
-identity_credential = { version = "1.5.0", default-features = false , features = ["credential", "presentation", "validator"] }
-identity_jose = { version = "1.5.0", default-features = false, features = ["custom_alg"] }
+identity_core = { version = "1.5.0", default-features = false, features = [
+    "custom_time",
+] }
+identity_credential = { version = "1.5.0", default-features = false, features = [
+    "credential",
+    "presentation",
+    "validator",
+] }
+identity_jose = { version = "1.5.0", default-features = false, features = [
+    "custom_alg",
+] }
 
 # other dependencies
 serde.workspace = true
