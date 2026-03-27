@@ -23,7 +23,7 @@ cargo add ic-verifiable-credentials
 Or add it to your `Cargo.toml`.
 
 ```toml
-ic-verifiable-credentials = "1.0.0"
+ic-verifiable-credentials = "1.3.0"
 ```
 
 ### Usage
