@@ -14,7 +14,7 @@ ic-cdk-macros.workspace = true
 serde.workspace = true
 serde_cbor.workspace = true
 sha2.workspace = true
-ic-http-certification = { workspace = true, features = ["serde"] }
+ic-http-certification.workspace = true
 base64.workspace = true
 lazy_static.workspace = true
 include_dir = { version = "0.7", features = ["glob"] }
