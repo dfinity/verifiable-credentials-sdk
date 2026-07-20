@@ -34,7 +34,6 @@ enum CanisterCall {
 }
 
 mod api {
-    use ic_cdk::management_canister::CanisterId;
     use ic_verifiable_credentials::issuer_api::{
         GetCredentialRequest, IssueCredentialError, IssuedCredentialData, PrepareCredentialRequest,
         PreparedCredentialData,
@@ -46,7 +45,7 @@ mod api {
         pic: &PocketIc,
         method: &str,
         call_type: CanisterCall,
-        canister_id: CanisterId,
+        canister_id: Principal,
         request: Req,
         sender: Option<Principal>,
     ) -> Result<Succ, Err>
@@ -85,7 +84,7 @@ mod api {
 
     pub fn consent_message(
         pic: &PocketIc,
-        canister_id: CanisterId,
+        canister_id: Principal,
         request: Icrc21VcConsentMessageRequest,
         sender: Option<Principal>,
     ) -> Result<Icrc21ConsentInfo, Icrc21Error> {
@@ -101,7 +100,7 @@ mod api {
 
     pub fn derivation_origin(
         pic: &PocketIc,
-        canister_id: CanisterId,
+        canister_id: Principal,
         request: DerivationOriginRequest,
         sender: Option<Principal>,
     ) -> Result<DerivationOriginData, DerivationOriginError> {
@@ -117,7 +116,7 @@ mod api {
 
     pub fn prepare_credential(
         pic: &PocketIc,
-        canister_id: CanisterId,
+        canister_id: Principal,
         request: PrepareCredentialRequest,
         sender: Option<Principal>,
     ) -> Result<PreparedCredentialData, IssueCredentialError> {
@@ -133,7 +132,7 @@ mod api {
 
     pub fn get_credential(
         pic: &PocketIc,
-        canister_id: CanisterId,
+        canister_id: Principal,
         request: GetCredentialRequest,
         sender: Option<Principal>,
     ) -> Result<IssuedCredentialData, IssueCredentialError> {

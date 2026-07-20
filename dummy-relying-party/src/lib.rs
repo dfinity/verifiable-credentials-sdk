@@ -9,7 +9,7 @@ use ic_cdk::{
 use ic_http_certification::{
     DefaultCelBuilder, DefaultResponseCertification, DefaultResponseOnlyCelExpression, HeaderField,
     HttpCertification, HttpCertificationPath, HttpCertificationTree, HttpCertificationTreeEntry,
-    HttpRequest, HttpResponse,
+    HttpRequest, HttpResponse, StatusCode,
 };
 use include_dir::{Dir, include_dir};
 use lazy_static::lazy_static;
@@ -30,7 +30,7 @@ fn post_upgrade() {
 }
 
 #[query]
-fn http_request(req: HttpRequest) -> HttpResponse {
+fn http_request(req: HttpRequest) -> HttpResponse<'static> {
     asset_handler(&req)
 }
 
@@ -38,19 +38,18 @@ fn http_request(req: HttpRequest) -> HttpResponse {
 
 #[derive(Debug, Clone)]
 struct HttpAssetResponse<'a> {
-    pub status_code: u16,
+    pub status_code: StatusCode,
     pub headers: Vec<HeaderField>,
     pub body: Cow<'a, [u8]>,
 }
 
-impl Into<HttpResponse> for HttpAssetResponse<'_> {
-    fn into(self) -> HttpResponse {
-        HttpResponse {
-            status_code: self.status_code,
-            headers: self.headers,
-            body: self.body.to_vec(),
-            upgrade: None,
-        }
+impl<'a> From<HttpAssetResponse<'a>> for HttpResponse<'a> {
+    fn from(response: HttpAssetResponse<'a>) -> Self {
+        HttpResponse::builder()
+            .with_status_code(response.status_code)
+            .with_headers(response.headers)
+            .with_body(response.body)
+            .build()
     }
 }
 
@@ -286,7 +285,7 @@ fn certify_asset_response(
 }
 
 // Handlers
-fn asset_handler(req: &HttpRequest) -> HttpResponse {
+fn asset_handler(req: &HttpRequest) -> HttpResponse<'static> {
     let req_path = req.get_path().expect("Failed to get req path");
 
     RESPONSES.with_borrow(|responses| {
@@ -309,7 +308,7 @@ fn asset_handler(req: &HttpRequest) -> HttpResponse {
             };
 
             // extract the content encoding header
-            let content_encoding = req.headers.iter().find_map(|(name, value)| {
+            let content_encoding = req.headers().iter().find_map(|(name, value)| {
                 if name.to_lowercase() == "accept-encoding" {
                     Some(value)
                 } else {
@@ -361,7 +360,7 @@ fn asset_handler(req: &HttpRequest) -> HttpResponse {
 
 const IC_CERTIFICATE_HEADER: &str = "IC-Certificate";
 fn add_certificate_header(
-    response: &mut HttpResponse,
+    response: &mut HttpResponse<'_>,
     entry: &HttpCertificationTreeEntry,
     request_url: &str,
     expr_path: &[String],
@@ -374,7 +373,7 @@ fn add_certificate_header(
     });
     let expr_path = cbor_encode(&expr_path);
 
-    response.headers.push((
+    response.add_header((
         IC_CERTIFICATE_HEADER.to_string(),
         format!(
             "certificate=:{}:, tree=:{}:, expr_path=:{}:, version=2",
@@ -398,7 +397,7 @@ fn create_asset_response(
     headers.extend(additional_headers);
 
     HttpAssetResponse {
-        status_code: 200,
+        status_code: StatusCode::OK,
         headers,
         body: Cow::Borrowed(body),
     }
